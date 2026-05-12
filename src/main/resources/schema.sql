@@ -2,7 +2,8 @@ CREATE TABLE IF NOT EXISTS usuarios (
     id TEXT PRIMARY KEY,
     username TEXT NOT NULL,
     password TEXT NOT NULL,
-    role TEXT NOT NULL
+    role TEXT NOT NULL,
+    foto_url TEXT
 );
 
 -- Índice único para garantir unicidade do username

@@ -26,6 +26,8 @@ public class Usuario implements Persistable<UUID>{
 
     private String password;
 
+    private String fotoUrl;
+    
     private Role role;
 
     @Transient 
