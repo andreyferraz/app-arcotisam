@@ -18,7 +18,8 @@ public class UsuarioService {
     private final UsuarioRepository usuarioRepository;
     private final PasswordEncoder passwordEncoder;
     private final FileUploadService fileUploadService;
-     private static final String USERNAME_FIELD = "username";
+    private static final String USERNAME_FIELD = "username";
+    private static final String PASSWORD_FIELD = "password";
 
     public UsuarioService(UsuarioRepository usuarioRepository, PasswordEncoder passwordEncoder, FileUploadService fileUploadService) {
         this.usuarioRepository = usuarioRepository;
@@ -39,7 +40,7 @@ public class UsuarioService {
     @Transactional
     public Usuario criarUsuario(String username, String password) {
         ValidationUtils.validarCampoStringObrigatorio(username, USERNAME_FIELD);
-        ValidationUtils.validarCampoStringObrigatorio(password, "password");
+        ValidationUtils.validarCampoStringObrigatorio(password, PASSWORD_FIELD);
 
         if (usuarioRepository.findByUsername(username).isPresent()) {
             throw new IllegalArgumentException("Username já existe" + username);
@@ -55,7 +56,7 @@ public class UsuarioService {
     @Transactional
     public Usuario criarAdmin(String username, String password, MultipartFile foto) {
         ValidationUtils.validarCampoStringObrigatorio(username, USERNAME_FIELD);
-        ValidationUtils.validarCampoStringObrigatorio(password, "password");
+        ValidationUtils.validarCampoStringObrigatorio(password, PASSWORD_FIELD);
 
         usuarioRepository.findByUsername(username).ifPresent(u -> {
             throw new IllegalArgumentException("Usuario já existe: " + username);
@@ -75,7 +76,7 @@ public class UsuarioService {
 
     public boolean autenticar(String username, String password) {
         ValidationUtils.validarCampoStringObrigatorio(username, USERNAME_FIELD);
-        ValidationUtils.validarCampoStringObrigatorio(password, "password");
+        ValidationUtils.validarCampoStringObrigatorio(password, PASSWORD_FIELD);
 
         Optional<Usuario> opt = usuarioRepository.findByUsername(username);
         if (opt.isEmpty()) {
