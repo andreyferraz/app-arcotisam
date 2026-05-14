@@ -1,0 +1,40 @@
+<!-- CONTATO -->
+<div th:fragment="content">
+<section class="page-section" id="contato" data-section="contato">
+  <div class="container page-header">
+    <span class="eyebrow">Fale conosco</span>
+    <h2>Contato</h2>
+    <p>Use o formulário abaixo para simular uma área de contato institucional.</p>
+  </div>
+
+  <div class="container contact-layout">
+    <form class="contact-form" id="contactForm">
+      <label>
+        Nome
+        <input type="text" name="nome" placeholder="Seu nome" required>
+      </label>
+
+      <label>
+        E-mail
+        <input type="email" name="email" placeholder="seuemail@exemplo.com" required>
+      </label>
+
+      <label>
+        Mensagem
+        <textarea name="mensagem" rows="5" placeholder="Digite sua mensagem" required></textarea>
+      </label>
+
+      <button class="btn btn-primary" type="submit">Enviar Mensagem</button>
+      <p class="form-message" id="formMessage"></p>
+    </form>
+
+    <aside class="contact-info">
+      <h3>Informações</h3>
+      <p><strong>Endereço:</strong> Rua dos Artesãos, 100 - Centro</p>
+      <p><strong>E-mail:</strong> contato@arcotisam.org.br</p>
+      <p><strong>Telefone:</strong> (00) 0000-0000</p>
+      <p><strong>Atendimento:</strong> Segunda a sexta, das 8h às 17h.</p>
+    </aside>
+  </div>
+</section>
+</div>

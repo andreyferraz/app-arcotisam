@@ -2,6 +2,8 @@ package com.arcotisam.app.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.data.jdbc.core.dialect.JdbcDialect;
 import org.springframework.data.relational.core.dialect.AnsiDialect;
 import org.springframework.data.relational.core.dialect.LimitClause;
@@ -29,4 +31,5 @@ public class DbConfig {
 			}
 		};
 	}
+
 }

@@ -1,0 +1,22 @@
+<!-- LOJA -->
+<div th:fragment="content">
+<section class="page-section" id="loja" data-section="loja">
+  <div class="container page-header">
+    <span class="eyebrow">Produtos artesanais</span>
+    <h2>Loja ARCOTISAM</h2>
+    <p>Confira uma seleção inicial de produtos para compor o template da loja.</p>
+  </div>
+
+  <div class="container shop-toolbar">
+    <input type="search" id="searchProduct" placeholder="Buscar produto..." aria-label="Buscar produto">
+    <select id="categoryFilter" aria-label="Filtrar por categoria">
+      <option value="todos">Todas as categorias</option>
+      <option value="decoracao">Decoração</option>
+      <option value="moda">Moda</option>
+      <option value="utilitarios">Utilitários</option>
+    </select>
+  </div>
+
+  <div class="container product-grid" id="productGrid"></div>
+</section>
+</div>

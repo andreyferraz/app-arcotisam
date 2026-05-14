@@ -1,0 +1,32 @@
+<!-- CARRINHO -->
+<div th:fragment="content">
+<section class="page-section" id="carrinho" data-section="carrinho">
+  <div class="container page-header">
+    <span class="eyebrow">Resumo do pedido</span>
+    <h2>Carrinho de Compras</h2>
+    <p>Template funcional em JavaScript puro para adicionar, remover e calcular itens.</p>
+  </div>
+
+  <div class="container cart-layout">
+    <div class="cart-items" id="cartItems"></div>
+
+    <aside class="cart-summary">
+      <h3>Total do Pedido</h3>
+      <div class="summary-line">
+        <span>Subtotal</span>
+        <strong id="subtotal">R$ 0,00</strong>
+      </div>
+      <div class="summary-line">
+        <span>Entrega</span>
+        <strong>Combinar</strong>
+      </div>
+      <hr>
+      <div class="summary-total">
+        <span>Total</span>
+        <strong id="total">R$ 0,00</strong>
+      </div>
+      <button class="btn btn-primary full" id="checkoutBtn" type="button">Finalizar Compra</button>
+    </aside>
+  </div>
+</section>
+</div>
