@@ -28,6 +28,7 @@ CREATE TABLE IF NOT EXISTS produtos (
     preco NUMERIC,
     imagem_url TEXT,
     ativo INTEGER DEFAULT 1,
+    quantidade_vendida INTEGER DEFAULT 0,
     artesao_id TEXT NOT NULL,
     CONSTRAINT fk_produtos_artesao FOREIGN KEY (artesao_id) REFERENCES artesaos(id) ON DELETE CASCADE
 );

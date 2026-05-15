@@ -40,7 +40,7 @@ public class ProdutoService {
             throw new IllegalArgumentException("Artesao nao encontrado: " + artesaoId);
         }
 
-        Produto novo = new Produto(UUID.randomUUID(), nome, descricao, preco, null, true, artesaoId, true);
+        Produto novo = new Produto(UUID.randomUUID(), nome, descricao, preco, null, true, 0, artesaoId, true);
 
         if (imagem != null && !imagem.isEmpty()) {
             String savedName = fileUploadService.salvarImagem(imagem);

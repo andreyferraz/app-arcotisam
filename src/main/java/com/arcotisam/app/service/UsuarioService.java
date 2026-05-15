@@ -9,6 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.arcotisam.app.model.Usuario;
+import com.arcotisam.app.enuns.Role;
 import com.arcotisam.app.repository.UsuarioRepository;
 import com.arcotisam.app.utils.ValidationUtils;
 
@@ -48,7 +49,7 @@ public class UsuarioService {
 
         String hash = passwordEncoder.encode(password);
 
-        Usuario novo = new Usuario(UUID.randomUUID(), username, hash, null, null, true);
+        Usuario novo = new Usuario(UUID.randomUUID(), username, hash, null, Role.ROLE_ARTESAO, true);
         return usuarioRepository.save(novo);
 
     }
@@ -64,7 +65,7 @@ public class UsuarioService {
 
         String hash = passwordEncoder.encode(password);
 
-        Usuario novo = new Usuario(UUID.randomUUID(), username, hash, null, null, true);
+        Usuario novo = new Usuario(UUID.randomUUID(), username, hash, null, Role.ROLE_ADMIN_MASTER, true);
 
         if (foto != null && !foto.isEmpty()) {
             String savedName = fileUploadService.salvarImagem(foto);

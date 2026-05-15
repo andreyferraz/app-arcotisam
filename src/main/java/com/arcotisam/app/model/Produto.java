@@ -33,6 +33,9 @@ public class Produto implements Persistable<UUID> {
 
     private Boolean ativo;
 
+    @Column("quantidade_vendida")
+    private Integer quantidadeVendida;
+
     @Column("artesao_id")
     private UUID artesaoId;
 
