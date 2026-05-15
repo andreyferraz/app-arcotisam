@@ -1,6 +1,13 @@
-<!-- CARRINHO -->
-<div th:fragment="content">
-<section class="page-section" id="carrinho" data-section="carrinho">
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="pt-BR">
+
+<head>
+  <title>Carrinho — Arcotisam</title>
+</head>
+
+<body th:replace="~{layout :: layout('Carrinho — Arcotisam', ~{::carrinhoContent})}">
+<div th:fragment="carrinhoContent">
+<section class="page-section active" id="carrinho" data-section="carrinho">
   <div class="container page-header">
     <span class="eyebrow">Resumo do pedido</span>
     <h2>Carrinho de Compras</h2>
@@ -30,3 +37,5 @@
   </div>
 </section>
 </div>
+</body>
+</html>

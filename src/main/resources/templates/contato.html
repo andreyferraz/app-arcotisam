@@ -1,6 +1,13 @@
-<!-- CONTATO -->
-<div th:fragment="content">
-<section class="page-section" id="contato" data-section="contato">
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="pt-BR">
+
+<head>
+  <title>Contato — Arcotisam</title>
+</head>
+
+<body th:replace="~{layout :: layout('Contato — Arcotisam', ~{::contatoContent})}">
+<div th:fragment="contatoContent">
+<section class="page-section active" id="contato" data-section="contato">
   <div class="container page-header">
     <span class="eyebrow">Fale conosco</span>
     <h2>Contato</h2>
@@ -36,5 +43,8 @@
       <p><strong>Atendimento:</strong> Segunda a sexta, das 8h às 17h.</p>
     </aside>
   </div>
+
 </section>
 </div>
+</body>
+</html>

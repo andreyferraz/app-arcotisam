@@ -1,6 +1,13 @@
-<!-- ASSOCIADOS -->
-<div th:fragment="content">
-<section class="page-section" id="associados" data-section="associados">
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="pt-BR">
+
+<head>
+  <title>Associados — Arcotisam</title>
+</head>
+
+<body th:replace="~{layout :: layout('Associados — Arcotisam', ~{::associadosContent})}">
+<div th:fragment="associadosContent">
+<section class="page-section active" id="associados" data-section="associados">
   <div class="container page-header">
     <span class="eyebrow">Nossa rede</span>
     <h2>Artesãos Associados</h2>
@@ -29,5 +36,8 @@
       <span>Têxtil</span>
     </article>
   </div>
+
 </section>
 </div>
+</body>
+</html>

@@ -1,6 +1,13 @@
-<!-- LOJA -->
-<div th:fragment="content">
-<section class="page-section" id="loja" data-section="loja">
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="pt-BR">
+
+<head>
+  <title>Loja — Arcotisam</title>
+</head>
+
+<body th:replace="~{layout :: layout('Loja — Arcotisam', ~{::lojaContent})}">
+<div th:fragment="lojaContent">
+<section class="page-section active" id="loja" data-section="loja">
   <div class="container page-header">
     <span class="eyebrow">Produtos artesanais</span>
     <h2>Loja ARCOTISAM</h2>
@@ -20,3 +27,5 @@
   <div class="container product-grid" id="productGrid"></div>
 </section>
 </div>
+</body>
+</html>
