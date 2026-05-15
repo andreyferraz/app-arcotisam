@@ -109,6 +109,24 @@ textarea {
   color: var(--color-white);
 }
 
+.admin-link {
+  gap: 8px;
+  background: rgba(190, 90, 66, 0.12);
+  color: var(--color-terracotta);
+  border: 1px solid rgba(190, 90, 66, 0.18);
+}
+
+.admin-link:hover,
+.admin-link.active {
+  background: var(--color-terracotta);
+  color: var(--color-white);
+}
+
+.admin-link span {
+  display: inline-flex;
+  align-items: center;
+}
+
 .cart-link {
   position: relative;
   background: rgba(224, 158, 54, 0.18);
@@ -274,11 +292,11 @@ p {
 .hero-card {
   position: relative;
   overflow: hidden;
-  padding: 42px;
+  padding: 34px;
   border-radius: var(--radius-lg);
   background: var(--color-white);
   box-shadow: var(--shadow-soft);
-  min-height: 430px;
+  min-height: 500px;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -289,6 +307,16 @@ p {
   z-index: 2;
   width: 100%;
   filter: drop-shadow(0 12px 18px rgba(32, 52, 56, 0.12));
+}
+
+.hero-photo {
+  width: min(100%, 520px);
+  aspect-ratio: 1 / 1.02;
+  object-fit: cover;
+  border-radius: 32px;
+  border: 12px solid rgba(255, 253, 247, 0.94);
+  box-shadow: 0 22px 42px rgba(32, 52, 56, 0.18);
+  margin: 0 auto;
 }
 
 .hero-card p {
@@ -372,6 +400,136 @@ p {
   grid-template-columns: 1.2fr 0.8fr;
   gap: 24px;
   align-items: stretch;
+}
+
+/* Login */
+.login-page {
+  display: block;
+}
+
+.login-layout {
+  display: grid;
+  grid-template-columns: 1fr 0.9fr;
+  gap: 24px;
+  align-items: stretch;
+}
+
+.login-brand-card,
+.login-form-card {
+  background: var(--color-white);
+  border: 1px solid rgba(94, 137, 144, 0.16);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-soft);
+}
+
+.login-brand-card {
+  padding: 38px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 460px;
+  background:
+    radial-gradient(circle at top right, rgba(224, 158, 54, 0.16), transparent 34%),
+    radial-gradient(circle at bottom left, rgba(94, 137, 144, 0.14), transparent 32%),
+    var(--color-white);
+}
+
+.login-brand-badge {
+  width: min(100%, 280px);
+  margin-bottom: 26px;
+  padding: 22px;
+  border-radius: 26px;
+  background: rgba(244, 242, 236, 0.9);
+}
+
+.login-brand-badge img {
+  width: 100%;
+}
+
+.login-brand-card h1 {
+  max-width: 12ch;
+}
+
+.login-brand-card p {
+  margin-top: 18px;
+  max-width: 34rem;
+  font-size: 1.05rem;
+}
+
+.login-form-card {
+  padding: 34px;
+}
+
+.login-form-card h2 {
+  font-size: clamp(1.8rem, 3vw, 2.6rem);
+}
+
+.login-form-card > p {
+  margin-top: 10px;
+}
+
+.login-form {
+  display: grid;
+  gap: 16px;
+  margin-top: 26px;
+}
+
+.login-form label {
+  display: grid;
+  gap: 8px;
+  color: var(--color-petrol);
+  font-weight: 800;
+}
+
+.login-form input[type="text"],
+.login-form input[type="password"] {
+  min-height: 52px;
+  padding: 0 16px;
+  border: 1px solid rgba(94, 137, 144, 0.28);
+  border-radius: 16px;
+  background: var(--color-white);
+  color: var(--color-petrol);
+  outline: none;
+}
+
+.login-form input[type="text"]:focus,
+.login-form input[type="password"]:focus {
+  border-color: var(--color-ocean);
+  box-shadow: 0 0 0 4px rgba(94, 137, 144, 0.13);
+}
+
+.login-remember {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+}
+
+.login-remember input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--color-terracotta);
+}
+
+.login-submit {
+  gap: 10px;
+}
+
+.login-alert {
+  margin-top: 18px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  font-weight: 700;
+}
+
+.login-alert.error {
+  background: rgba(190, 90, 66, 0.12);
+  color: var(--color-terracotta);
+}
+
+.login-alert.success {
+  background: rgba(94, 137, 144, 0.12);
+  color: var(--color-ocean);
 }
 
 .content-box {
@@ -721,6 +879,11 @@ p {
   text-align: right;
 }
 
+.footer-content a {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
 /* Responsividade */
 @media (max-width: 920px) {
   .menu-toggle {
@@ -751,6 +914,7 @@ p {
 
   .hero,
   .split-layout,
+  .login-layout,
   .contact-layout,
   .cart-layout {
     grid-template-columns: 1fr;
@@ -788,6 +952,15 @@ p {
   .hero-card {
     min-height: 300px;
     padding: 28px;
+  }
+
+  .login-brand-card,
+  .login-form-card {
+    padding: 28px;
+  }
+
+  .login-brand-card {
+    min-height: auto;
   }
 
   .feature-grid,

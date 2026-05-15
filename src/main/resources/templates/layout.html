@@ -35,6 +35,10 @@
 				<a th:href="@{/loja}" class="nav-link">Loja</a>
 				<a th:href="@{/associados}" class="nav-link">Associados</a>
 				<a th:href="@{/contato}" class="nav-link">Contato</a>
+				<a th:href="@{/login}" class="nav-link admin-link" aria-label="Entrar no painel admin">
+					<span aria-hidden="true">🔐</span>
+					<span>Login Admin</span>
+				</a>
 				<a th:href="@{/carrinho}" class="cart-link nav-link">
 					Carrinho
 					<span class="cart-count" id="cartCount">0</span>
@@ -52,6 +56,7 @@
 			<img th:src="@{/img/logo.png}" alt="ARCOTISAM" />
 			<p>
 				© <span id="currentYear"></span> ARCOTISAM. Portal institucional e comercial para associação de artesãos.
+				Desenvolvido por <a href="https://www.andreyferraz.com.br" target="_blank" rel="noopener noreferrer">Andrêy Ferraz</a>.
 			</p>
 		</div>
 	</footer>

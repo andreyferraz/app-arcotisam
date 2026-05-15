@@ -36,4 +36,9 @@ public class PageController {
     public String carrinho(Model model) {
         return "carrinho";
     }
+
+    @GetMapping("/login")
+    public String login(Model model) {
+        return "login";
+    }
 }
