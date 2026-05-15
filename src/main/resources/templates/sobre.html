@@ -1,9 +1,13 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" lang="pt-BR">
 
-<body th:replace="~{layout :: layout('Sobre — Arcotisam', ~{::content})}">
-<div th:fragment="content">
-<section class="page-section" id="sobre" data-section="sobre">
+<head>
+  <title>Sobre — Arcotisam</title>
+</head>
+
+<body th:replace="~{layout :: layout('Sobre — Arcotisam', ~{::sobreContent})}">
+<div th:fragment="sobreContent">
+<section class="page-section active" id="sobre" data-section="sobre">
   <div class="container page-header">
     <span class="eyebrow">Quem somos</span>
     <h2>Sobre a ARCOTISAM</h2>
