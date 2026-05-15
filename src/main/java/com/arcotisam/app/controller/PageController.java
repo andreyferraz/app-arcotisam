@@ -9,43 +9,31 @@ public class PageController {
 
     @GetMapping({"/", "/home"})
     public String home(Model model) {
-        model.addAttribute("title", "Home - ARCOTISAM");
-        model.addAttribute("view", "home");
-        return "layout";
+        return "index";
     }
 
     @GetMapping("/sobre")
     public String sobre(Model model) {
-        model.addAttribute("title", "Sobre - ARCOTISAM");
-        model.addAttribute("view", "sobre");
-        return "layout";
+        return "sobre";
     }
 
     @GetMapping("/loja")
     public String loja(Model model) {
-        model.addAttribute("title", "Loja - ARCOTISAM");
-        model.addAttribute("view", "loja");
-        return "layout";
+        return "loja";
     }
 
     @GetMapping("/associados")
     public String associados(Model model) {
-        model.addAttribute("title", "Associados - ARCOTISAM");
-        model.addAttribute("view", "associados");
-        return "layout";
+        return "associados";
     }
 
     @GetMapping("/contato")
     public String contato(Model model) {
-        model.addAttribute("title", "Contato - ARCOTISAM");
-        model.addAttribute("view", "contato");
-        return "layout";
+        return "contato";
     }
 
     @GetMapping("/carrinho")
     public String carrinho(Model model) {
-        model.addAttribute("title", "Carrinho - ARCOTISAM");
-        model.addAttribute("view", "carrinho");
-        return "layout";
+        return "carrinho";
     }
 }

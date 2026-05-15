@@ -1,9 +1,13 @@
 <!DOCTYPE html>
-<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<html lang="pt-BR"
+      xmlns:th="http://www.thymeleaf.org"
+      th:fragment="layout(title, content)">
+
 <head>
 	<meta charset="UTF-8" />
 	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-	<title th:text="${title} ?: 'ARCOTISAM'">ARCOTISAM</title>
+
+	<title th:text="${title}">ARCOTISAM</title>
 
 	<link rel="preconnect" href="https://fonts.googleapis.com">
 	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -39,8 +43,8 @@
 		</nav>
 	</header>
 
-	<main id="main-content" th:insert="~{${view} :: content}">
-		Conteúdo padrão caso o fragmento não seja encontrado.
+	<main id="main-content" th:replace="${content}">
+		Conteúdo da página
 	</main>
 
 	<footer class="site-footer">
