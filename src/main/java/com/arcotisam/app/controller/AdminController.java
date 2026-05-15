@@ -30,6 +30,7 @@ public class AdminController {
 
     private final AdminMasterService adminMasterService;
     private final UsuarioService usuarioService;
+    private static final String SUCESSO = "sucesso";
 
     public AdminController(AdminMasterService adminMasterService, UsuarioService usuarioService) {
         this.adminMasterService = adminMasterService;
@@ -64,7 +65,7 @@ public class AdminController {
         try {
             boolean edicao = form.getId() != null;
             adminMasterService.salvarArtesao(form, foto);
-            redirectAttributes.addFlashAttribute("sucesso", edicao ? "Artesão atualizado com sucesso." : "Artesão cadastrado com sucesso.");
+            redirectAttributes.addFlashAttribute(SUCESSO, edicao ? "Artesão atualizado com sucesso." : "Artesão cadastrado com sucesso.");
         } catch (RuntimeException ex) {
             redirectAttributes.addFlashAttribute("erro", ex.getMessage());
             if (form.getId() != null) {
@@ -80,7 +81,7 @@ public class AdminController {
     public String excluirArtesao(@PathVariable UUID id, RedirectAttributes redirectAttributes) {
         try {
             adminMasterService.excluirArtesao(id);
-            redirectAttributes.addFlashAttribute("sucesso", "Artesão excluído com sucesso.");
+            redirectAttributes.addFlashAttribute(SUCESSO, "Artesão excluído com sucesso.");
         } catch (RuntimeException ex) {
             redirectAttributes.addFlashAttribute("erro", ex.getMessage());
         }
@@ -106,7 +107,7 @@ public class AdminController {
             }
 
             usuarioService.atualizarSenha(opt.get().getId(), novaSenha);
-            redirectAttributes.addFlashAttribute("sucesso", "Senha atualizada com sucesso.");
+            redirectAttributes.addFlashAttribute(SUCESSO, "Senha atualizada com sucesso.");
         } catch (RuntimeException ex) {
             redirectAttributes.addFlashAttribute("erro", ex.getMessage());
         }
