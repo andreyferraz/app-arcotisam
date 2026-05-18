@@ -224,8 +224,8 @@ function saveCart() {
 }
 
 function addToCart(productId) {
-  const product = products.find(item => item.id === productId);
-  const itemInCart = cart.find(item => item.id === productId);
+  const product = products.find(item => String(item.id) === String(productId));
+  const itemInCart = cart.find(item => String(item.id) === String(productId));
 
   if (itemInCart) {
     itemInCart.quantity += 1;
@@ -274,7 +274,7 @@ function addServerProductToCartFromCardData(productId, btn) {
 }
 
 function changeQuantity(productId, action) {
-  const item = cart.find(product => product.id === productId);
+  const item = cart.find(product => String(product.id) === String(productId));
 
   if (!item) return;
 
@@ -287,7 +287,7 @@ function changeQuantity(productId, action) {
   }
 
   if (item.quantity <= 0) {
-    cart = cart.filter(product => product.id !== productId);
+    cart = cart.filter(product => String(product.id) !== String(productId));
   }
 
   saveCart();
@@ -296,7 +296,7 @@ function changeQuantity(productId, action) {
 }
 
 function removeFromCart(productId) {
-  cart = cart.filter(product => product.id !== productId);
+  cart = cart.filter(product => String(product.id) !== String(productId));
   saveCart();
   renderCart();
   updateCartCount();
@@ -330,10 +330,14 @@ function renderCart() {
         <p>${formatCurrency(item.price)} por unidade</p>
       </div>
       <div class="quantity-control">
-        <button type="button" onclick="changeQuantity(${item.id}, 'decrease')">−</button>
+        <button type="button" data-cart-action="decrease" data-cart-id="${String(item.id)}">−</button>
         <strong>${item.quantity}</strong>
-        <button type="button" onclick="changeQuantity(${item.id}, 'increase')">+</button>
-        <button class="remove-btn" type="button" onclick="removeFromCart(${item.id})">Remover</button>
+        <button type="button" data-cart-action="increase" data-cart-id="${String(item.id)}">+</button>
+        <button class="remove-btn" type="button" data-cart-action="remove" data-cart-id="${String(item.id)}" aria-label="Remover item">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M3 6h18v2H3V6zm2 3h2v11H5V9zm4 0h2v11H9V9zm4 0h2v11h-2V9zm4 0h2v11h-2V9zM8 2h8l-1 2H9L8 2z"/>
+          </svg>
+        </button>
       </div>
     </article>
   `).join("");
@@ -387,6 +391,31 @@ function postLoadInit(page) {
   renderProducts();
   renderCart();
   updateCartCount();
+
+  if (cartItems && !cartItems.dataset.bound) {
+    cartItems.dataset.bound = "true";
+    cartItems.addEventListener("click", (ev) => {
+      const btn = ev.target.closest("button[data-cart-action]");
+      if (!btn) return;
+
+      ev.preventDefault();
+
+      const action = btn.dataset.cartAction;
+      const productId = btn.dataset.cartId;
+
+      if (action === "increase") {
+        changeQuantity(productId, "increase");
+      }
+
+      if (action === "decrease") {
+        changeQuantity(productId, "decrease");
+      }
+
+      if (action === "remove") {
+        removeFromCart(productId);
+      }
+    });
+  }
 
   // Delegação global para botões de adicionar em server-rendered pages
   document.addEventListener('click', (ev) => {
