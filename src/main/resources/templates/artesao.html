@@ -109,7 +109,7 @@
         <thead><tr><th>Data</th><th>Tipo</th><th>Descrição</th><th>Valor</th></tr></thead>
         <tbody>
           <tr th:each="m : ${movimentacoes}">
-            <td th:text="${m.dataHora}"></td>
+            <td th:text="${#temporals.format(m.dataHora, 'dd/MM/yyyy')}"></td>
             <td th:text="${m.tipo}"></td>
             <td th:text="${m.descricao}"></td>
             <td th:text="${m.valor}"></td>
