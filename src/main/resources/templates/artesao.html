@@ -105,6 +105,29 @@
       </form>
 
       <h4>Lançamentos Recentes</h4>
+      <div style="margin-top:12px; margin-bottom:12px;">
+        <h4>Relatórios</h4>
+        <form method="get" th:action="@{/artesao/relatorios/dia}" style="display:inline-block; margin-right:12px;">
+          <label>Dia</label>
+          <input type="date" name="data" id="relData" />
+          <button class="btn" type="submit">Baixar</button>
+        </form>
+
+        <form method="get" th:action="@{/artesao/relatorios/mes}" style="display:inline-block; margin-right:12px;">
+          <label>Mês</label>
+          <input type="number" name="ano" id="relMesAno" placeholder="YYYY" style="width:90px" />
+          <select name="mes" id="relMesMes">
+            <option th:each="i : ${#numbers.sequence(1,12)}" th:value="${i}" th:text="${i}"></option>
+          </select>
+          <button class="btn" type="submit">Baixar</button>
+        </form>
+
+        <form method="get" th:action="@{/artesao/relatorios/ano}" style="display:inline-block; margin-right:12px;">
+          <label>Ano</label>
+          <input type="number" name="ano" id="relAno" placeholder="YYYY" style="width:90px" />
+          <button class="btn" type="submit">Baixar</button>
+        </form>
+      </div>
       <table>
         <thead><tr><th>Data</th><th>Tipo</th><th>Descrição</th><th>Valor</th></tr></thead>
         <tbody>
@@ -137,5 +160,23 @@
 
 
 
+<script>
+  (function(){
+    const today = new Date();
+    const pad = n => n.toString().padStart(2,'0');
+    const y = today.getFullYear();
+    const m = pad(today.getMonth()+1);
+    const d = pad(today.getDate());
+    const dateStr = `${y}-${m}-${d}`;
+    const relData = document.getElementById('relData');
+    if (relData) relData.value = dateStr;
+    const relMesAno = document.getElementById('relMesAno');
+    const relMesMes = document.getElementById('relMesMes');
+    const relAno = document.getElementById('relAno');
+    if (relMesAno) relMesAno.value = y;
+    if (relMesMes) relMesMes.value = today.getMonth()+1;
+    if (relAno) relAno.value = y;
+  })();
+</script>
 </body>
 </html>
