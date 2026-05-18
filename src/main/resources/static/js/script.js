@@ -128,6 +128,74 @@ function renderProducts() {
   `).join("");
 }
 
+/* Table pagination utility for server-rendered tables
+   - tableId: id of the <table>
+   - tbodyId: id of the <tbody> containing rows
+   - pagerId: id of the container where pagination controls will be rendered
+   - pageSize: number of rows per page
+*/
+function initTablePagination(tableId, tbodyId, pagerId, pageSize = 5) {
+  const tbody = document.getElementById(tbodyId);
+  const pager = document.getElementById(pagerId);
+  if (!tbody || !pager) return;
+
+  const rows = Array.from(tbody.querySelectorAll('tr'));
+  const total = rows.length;
+  const pages = Math.max(1, Math.ceil(total / pageSize));
+  let current = 1;
+
+  function renderPage(page) {
+    current = Math.min(Math.max(1, page), pages);
+    const start = (current - 1) * pageSize;
+    const end = start + pageSize;
+    rows.forEach((r, i) => {
+      r.style.display = (i >= start && i < end) ? '' : 'none';
+    });
+    renderControls();
+  }
+
+  function renderControls() {
+    pager.innerHTML = '';
+    if (pages <= 1) return;
+
+    const prev = document.createElement('button');
+    prev.type = 'button';
+    prev.className = 'btn btn-sm';
+    prev.textContent = '«';
+    prev.disabled = current === 1;
+    prev.addEventListener('click', () => renderPage(current - 1));
+    pager.appendChild(prev);
+
+    // page numbers (limit to a small window)
+    const windowSize = 5;
+    let startPage = Math.max(1, current - Math.floor(windowSize / 2));
+    let endPage = Math.min(pages, startPage + windowSize - 1);
+    if (endPage - startPage + 1 < windowSize) {
+      startPage = Math.max(1, endPage - windowSize + 1);
+    }
+
+    for (let i = startPage; i <= endPage; i++) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'btn btn-sm' + (i === current ? ' active' : '');
+      btn.textContent = String(i);
+      btn.addEventListener('click', () => renderPage(i));
+      pager.appendChild(btn);
+    }
+
+    const next = document.createElement('button');
+    next.type = 'button';
+    next.className = 'btn btn-sm';
+    next.textContent = '»';
+    next.disabled = current === pages;
+    next.addEventListener('click', () => renderPage(current + 1));
+    pager.appendChild(next);
+  }
+
+  // initialize
+  renderPage(1);
+}
+
 function getCategoryLabel(category) {
   const categories = {
     decoracao: "Decoração",
@@ -271,6 +339,11 @@ function postLoadInit(page) {
   renderProducts();
   renderCart();
   updateCartCount();
+
+  // initialize table pagination for server-rendered products list
+  if (document.getElementById('produtosTbody')) {
+    initTablePagination('produtosTable', 'produtosTbody', 'produtosPagination', 5);
+  }
 }
 
 document.getElementById("currentYear").textContent = new Date().getFullYear();

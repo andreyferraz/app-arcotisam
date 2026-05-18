@@ -1484,3 +1484,22 @@ p {
 @media (max-width: 720px) {
   .page-section .card form { grid-template-columns: 1fr; }
 }
+
+/* product thumbnail */
+.product-thumb {
+  width: 64px;
+  height: 64px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid rgba(94,137,144,0.08);
+}
+
+@media (max-width: 720px) {
+  .product-thumb { width: 48px; height: 48px; }
+}
+
+/* pagination controls */
+.pagination { display:flex; gap:8px; justify-content:flex-end; margin-top:12px; }
+.pagination .btn { padding:6px 10px; border-radius:6px; background:#f3f7f7; border:1px solid rgba(0,0,0,0.06); cursor:pointer; }
+.pagination .btn.active { background:#5e8990; color:#fff; }
+.pagination .btn:disabled { opacity:0.5; cursor:not-allowed; }

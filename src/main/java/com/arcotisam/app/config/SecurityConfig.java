@@ -48,8 +48,12 @@ public class SecurityConfig {
                         "/favicon.ico",
                         LOGIN_PATH
                     ).permitAll()
-                    .requestMatchers(HttpMethod.POST, "/artesao/**", "/artesaos/**").hasRole(ROLE_ADMIN_MASTER)
-                    .requestMatchers(HttpMethod.DELETE, "/artesao/**", "/artesaos/**").hasRole(ROLE_ADMIN_MASTER)
+                    // Admin-only endpoints for managing multiple artesãos
+                    .requestMatchers(HttpMethod.POST, "/artesaos/**").hasRole(ROLE_ADMIN_MASTER)
+                    .requestMatchers(HttpMethod.DELETE, "/artesaos/**").hasRole(ROLE_ADMIN_MASTER)
+                    // Artesão endpoints: allow POST/DELETE for authenticated artesãos and admins
+                    .requestMatchers(HttpMethod.POST, "/artesao/**").hasAnyRole(ROLE_ADMIN_MASTER, ROLE_ARTESAO)
+                    .requestMatchers(HttpMethod.DELETE, "/artesao/**").hasAnyRole(ROLE_ADMIN_MASTER, ROLE_ARTESAO)
                     .requestMatchers("/admin", "/admin/**").hasRole(ROLE_ADMIN_MASTER)
                     .requestMatchers("/artesao", "/artesao/**").hasAnyRole(ROLE_ADMIN_MASTER, ROLE_ARTESAO)
                     .anyRequest().authenticated()

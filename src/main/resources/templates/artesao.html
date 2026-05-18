@@ -41,12 +41,21 @@
         </div>
       </form>
 
-      <table>
+      <table id="produtosTable">
         <thead>
-          <tr><th>Nome</th><th>Preço</th><th>Ações</th></tr>
+          <tr>
+            <th>Imagem</th>
+            <th>Nome</th>
+            <th>Preço</th>
+            <th>Ações</th>
+          </tr>
         </thead>
-        <tbody>
+        <tbody id="produtosTbody">
           <tr th:each="p : ${produtos}">
+            <td>
+              <img th:if="${p.imagemUrl != null}" th:src="@{|/uploads/${p.imagemUrl}|}" th:alt="${p.nome}" class="product-thumb" />
+              <span th:if="${p.imagemUrl == null}">—</span>
+            </td>
             <td th:text="${p.nome}"></td>
             <td th:text="${p.preco}"></td>
             <td>
@@ -58,6 +67,8 @@
           </tr>
         </tbody>
       </table>
+
+      <div class="pagination" id="produtosPagination" aria-label="Paginação de produtos"></div>
     </div>
 
     <div class="card">
