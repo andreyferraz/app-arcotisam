@@ -159,19 +159,21 @@
 
     <div class="container admin-artesao-grid" th:if="${!#lists.isEmpty(artesaos)}">
       <article class="admin-artesao-card" th:each="item : ${artesaos}">
-        <div class="admin-artesao-photo">
-          <img th:if="${item.fotoUrl != null and !#strings.isEmpty(item.fotoUrl)}" th:src="@{|/uploads/${item.fotoUrl}|}" th:alt="${'Foto de ' + item.nome}">
-          <span th:unless="${item.fotoUrl != null and !#strings.isEmpty(item.fotoUrl)}">ARCOTISAM</span>
-        </div>
-
         <div class="admin-artesao-body">
-          <h3 th:text="${item.nome}">Nome do artesão</h3>
-          <p th:text="${item.descricao}">Descrição</p>
-
-          <div class="admin-meta">
-            <span th:text="${item.username}">login</span>
-            <span th:text="${item.totalProdutos} + ' produtos'">0 produtos</span>
+          <div class="admin-artesao-thumb">
+            <img th:if="${item.fotoUrl != null and !#strings.isEmpty(item.fotoUrl)}" th:src="@{|/uploads/${item.fotoUrl}|}" th:alt="${'Foto de ' + item.nome}">
+            <span th:unless="${item.fotoUrl != null and !#strings.isEmpty(item.fotoUrl)}">ARC</span>
           </div>
+          <h3 th:text="${item.nome}">Nome do artesão</h3>
+
+          <div style="display:flex; align-items:center; gap:12px;">
+            <span class="admin-username" th:text="${item.username}">login</span>
+            <span class="admin-meta" style="margin-left:auto;"> 
+              <span th:text="${item.totalProdutos} + ' produtos'">0 produtos</span>
+            </span>
+          </div>
+
+          <p class="admin-artesao-desc" th:text="${item.descricao}">Descrição</p>
 
           <div class="admin-meta secondary" th:if="${item.whatsapp != null and !#strings.isEmpty(item.whatsapp)}">
             <span th:text="${item.whatsapp}">WhatsApp</span>

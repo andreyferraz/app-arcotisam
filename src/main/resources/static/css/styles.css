@@ -902,6 +902,42 @@ p {
   gap: 12px;
 }
 
+/* Thumbnail inside artesao card */
+.admin-artesao-thumb {
+  width: 64px;
+  height: 64px;
+  border-radius: 12px;
+  overflow: hidden;
+  display: inline-block;
+}
+.admin-artesao-thumb img {
+  width: 64px;
+  height: 64px;
+  object-fit: cover;
+  display: block;
+}
+.admin-artesao-thumb span {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  background: linear-gradient(135deg, rgba(94,137,144,0.12), rgba(224,158,54,0.12));
+  color: var(--color-petrol);
+  font-weight: 900;
+}
+
+/* Layout: keep actions below info and make thumb + title inline */
+.admin-artesao-body > .admin-artesao-thumb + h3 {
+  margin-left: 8px;
+}
+.admin-artesao-body {
+  grid-template-columns: auto 1fr;
+  align-items: start;
+}
+.admin-card-actions {
+  padding: 16px 24px 24px;
+}
+
 .admin-artesao-body p {
   min-height: 72px;
 }
@@ -923,6 +959,25 @@ p {
 
 .admin-meta.secondary span {
   background: rgba(224, 158, 54, 0.16);
+}
+
+/* Enhanced artesao card visuals */
+.admin-username {
+  font-weight: 900;
+  color: var(--color-petrol);
+  background: rgba(244,242,236,0.9);
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(94,137,144,0.08);
+}
+
+.admin-artesao-desc {
+  color: var(--color-muted);
+  font-size: 0.95rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .admin-card-actions {
