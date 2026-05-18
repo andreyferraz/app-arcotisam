@@ -39,13 +39,13 @@
             <div th:if="${p.imagemUrl == null}">🧶</div>
           </div>
           <div class="product-body">
-            <h3 th:text="${p.nome}">Produto</h3>
-            <p th:text="${p.descricao}">Descrição</p>
+            <h3 class="product-title" th:text="${p.nome}">Produto</h3>
+            <p class="product-desc" th:text="${p.descricao}">Descrição</p>
             <div class="product-footer">
               <strong class="price" th:text="${'R$ ' + #numbers.formatDecimal(p.preco, 1, 'POINT', 2, 'COMMA')}">
                 R$0,00
               </strong>
-              <button type="button" class="btn btn-primary buy-btn" th:attr="data-id=${p.id}">Comprar</button>
+              <button type="button" class="btn btn-primary buy-btn" th:attr="data-id=${p.id}">Adicionar</button>
             </div>
           </div>
         </div>

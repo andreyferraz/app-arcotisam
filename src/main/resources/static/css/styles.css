@@ -1138,17 +1138,23 @@ p {
 
 .product-card {
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-white);
+  border: 1px solid rgba(94, 137, 144, 0.14);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
 }
 
 .product-image {
-  height: 190px;
+  height: 200px;
   display: grid;
   place-items: center;
   background:
-    radial-gradient(circle at 30% 20%, rgba(224, 158, 54, 0.32), transparent 35%),
-    radial-gradient(circle at 80% 85%, rgba(94, 137, 144, 0.26), transparent 35%),
+    radial-gradient(circle at 30% 20%, rgba(224, 158, 54, 0.24), transparent 35%),
+    radial-gradient(circle at 80% 85%, rgba(94, 137, 144, 0.18), transparent 35%),
     var(--color-sand-dark);
-  font-size: 4.8rem;
+  font-size: 3.6rem;
 }
 
 /* imagem do produto na loja (preencher área) */
@@ -1161,7 +1167,8 @@ p {
 }
 
 .product-body {
-  padding: 22px;
+  padding: 18px 20px 22px 20px;
+  color: var(--color-petrol);
 }
 
 .product-footer {
@@ -1182,16 +1189,7 @@ p {
   padding: 10px 14px;
 }
 
-.product-category {
-  display: inline-flex;
-  padding: 6px 10px;
-  border-radius: 999px;
-  background: rgba(94, 137, 144, 0.14);
-  color: var(--color-ocean);
-  font-size: 0.76rem;
-  font-weight: 800;
-  text-transform: uppercase;
-}
+/* categoria removida do layout; manter estilos gerais */
 
 .product-body h3 {
   margin-top: 12px;
@@ -1199,7 +1197,15 @@ p {
 
 .product-body p {
   margin-top: 8px;
-  min-height: 52px;
+  color: var(--color-muted);
+  font-size: 0.98rem;
+  line-height: 1.35;
+  min-height: 54px;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .product-footer {
@@ -1214,6 +1220,30 @@ p {
   color: var(--color-terracotta);
   font-size: 1.28rem;
   font-weight: 900;
+}
+
+/* Responsividade: adapta grid e cards em telas menores */
+@media (max-width: 900px) {
+  .feature-grid,
+  .product-grid,
+  .member-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 560px) {
+  .feature-grid,
+  .product-grid,
+  .member-grid {
+    grid-template-columns: 1fr;
+  }
+  .product-image {
+    height: 220px;
+  }
+  .buy-btn {
+    min-width: 100px;
+    padding: 10px 12px;
+  }
 }
 
 /* Associados */
