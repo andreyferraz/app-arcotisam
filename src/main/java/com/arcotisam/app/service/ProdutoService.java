@@ -1,8 +1,11 @@
 package com.arcotisam.app.service;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -38,6 +41,11 @@ public class ProdutoService {
     public java.util.List<Produto> listarPorArtesao(UUID artesaoId) {
         ValidationUtils.validarCampoObrigatorio(artesaoId, "artesaoId");
         return produtoRepository.findByArtesaoId(artesaoId);
+    }
+
+    public List<Produto> listarTodos() {
+        return StreamSupport.stream(produtoRepository.findAll().spliterator(), false)
+                .collect(Collectors.toList());
     }
 
     @Transactional
