@@ -6,48 +6,52 @@
 </head>
 
 <body th:replace="~{layout :: layout('Loja — Arcotisam', ~{::lojaContent})}">
-<div th:fragment="lojaContent">
-<section class="page-section active" id="loja" data-section="loja">
-  <div class="container page-header">
-    <span class="eyebrow">Produtos artesanais</span>
-    <h2>Loja ARCOTISAM</h2>
-    <p>Confira uma seleção inicial de produtos para compor o template da loja.</p>
-  </div>
-
-  <div class="container shop-toolbar">
-    <form method="get" action="/loja" class="shop-filter-form">
-      <input type="search" id="searchProductServer" name="q" placeholder="Buscar produto..." aria-label="Buscar produto">
-      <select id="artesaoFilter" name="artesaoId" aria-label="Filtrar por artesão" onchange="this.form.submit()">
-        <option value="" th:text="'Todos os artesãos'">Todos os artesãos</option>
-        <option th:each="a : ${artesaos}"
-                th:value="${a.id}"
-                th:text="${a.nome}"
-                th:selected="${a.id.toString() == selectedArtesaoId}">
-        </option>
-      </select>
-    </form>
-  </div>
-
-  <div class="container product-grid" id="productGridServer">
-    <div th:if="${#lists.isEmpty(produtos)}" class="cart-empty">
-      Nenhum produto encontrado para o filtro selecionado.
-    </div>
-
-    <div th:each="p : ${produtos}" class="product-card">
-      <div class="product-image">
-        <img th:if="${p.imagemUrl != null}" th:src="@{/${p.imagemUrl}}" alt="" />
-        <div th:if="${p.imagemUrl == null}">🧶</div>
+  <div th:fragment="lojaContent">
+    <section class="page-section active" id="loja" data-section="loja">
+      <div class="container page-header">
+        <span class="eyebrow">Produtos artesanais</span>
+        <h2>Loja ARCOTISAM</h2>
+        <p>Confira uma seleção inicial de produtos para compor o template da loja.</p>
       </div>
-      <div class="product-body">
-        <h3 th:text="${p.nome}">Produto</h3>
-        <p th:text="${p.descricao}">Descrição</p>
-        <div class="product-footer">
-          <strong class="price" th:text="${p.preco}">R$0,00</strong>
+
+      <div class="container shop-toolbar">
+        <form method="get" action="/loja" class="shop-filter-form">
+          <input type="search" id="searchProductServer" name="q" placeholder="Buscar produto..."
+            aria-label="Buscar produto">
+          <select id="artesaoFilter" name="artesaoId" aria-label="Filtrar por artesão" onchange="this.form.submit()">
+            <option value="" th:text="'Todos os artesãos'">Todos os artesãos</option>
+            <option th:each="a : ${artesaos}" th:value="${a.id}" th:text="${a.nome}"
+              th:selected="${a.id.toString() == selectedArtesaoId}">
+            </option>
+          </select>
+        </form>
+      </div>
+
+      <div class="container product-grid" id="productGridServer">
+        <div th:if="${#lists.isEmpty(produtos)}" class="cart-empty">
+          Nenhum produto encontrado para o filtro selecionado.
+        </div>
+
+        <div th:each="p : ${produtos}" class="product-card">
+          <div class="product-image">
+            <img th:if="${p.imagemUrl != null}" th:src="@{|/uploads/${p.imagemUrl}|}" th:alt="${p.nome}"
+              class="product-photo" />
+            <div th:if="${p.imagemUrl == null}">🧶</div>
+          </div>
+          <div class="product-body">
+            <h3 th:text="${p.nome}">Produto</h3>
+            <p th:text="${p.descricao}">Descrição</p>
+            <div class="product-footer">
+              <strong class="price" th:text="${'R$ ' + #numbers.formatDecimal(p.preco, 1, 'POINT', 2, 'COMMA')}">
+                R$0,00
+              </strong>
+              <button type="button" class="btn btn-primary buy-btn" th:attr="data-id=${p.id}">Comprar</button>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
+    </section>
   </div>
-</section>
-</div>
 </body>
+
 </html>
