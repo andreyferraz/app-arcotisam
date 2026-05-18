@@ -1403,3 +1403,84 @@ p {
     justify-content: space-between;
   }
 }
+
+/* Artesão: aprimoramento visual específico */
+.page-section .card {
+  padding: 22px;
+  margin-bottom: 20px;
+  border-radius: 14px;
+  background: var(--color-white);
+  border: 1px solid rgba(94,137,144,0.10);
+}
+
+.product-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  align-items: center;
+}
+
+.product-form > div { display:flex; flex-direction:column; gap:6px; }
+
+.product-form input[type="text"],
+.product-form input[type="number"],
+.product-form input[type="file"],
+.product-form select {
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(94,137,144,0.14);
+  background: var(--color-white);
+}
+
+.product-form button.btn {
+  grid-column: 1 / -1;
+  width: auto;
+}
+
+.page-section table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 12px;
+}
+
+.page-section table th,
+.page-section table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(94,137,144,0.06);
+}
+
+.page-section table thead th { font-weight:800; color:var(--color-petrol); }
+
+@media (max-width: 720px) {
+  .product-form { grid-template-columns: 1fr; }
+  .page-section .card { padding: 16px; }
+}
+
+/* Apply same form layout used by .product-form to other card forms (caixa, alterar senha) */
+.page-section .card form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  align-items: center;
+}
+
+.page-section .card form > div { display:flex; flex-direction:column; gap:6px; }
+
+.page-section .card form input[type="text"],
+.page-section .card form input[type="password"],
+.page-section .card form input[type="number"],
+.page-section .card form select {
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(94,137,144,0.14);
+  background: var(--color-white);
+}
+
+.page-section .card form button.btn {
+  grid-column: 1 / -1;
+  justify-self: start;
+}
+
+@media (max-width: 720px) {
+  .page-section .card form { grid-template-columns: 1fr; }
+}

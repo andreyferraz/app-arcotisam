@@ -32,3 +32,14 @@ CREATE TABLE IF NOT EXISTS produtos (
     artesao_id TEXT NOT NULL,
     CONSTRAINT fk_produtos_artesao FOREIGN KEY (artesao_id) REFERENCES artesaos(id) ON DELETE CASCADE
 );
+
+-- Tabela de movimentações (entradas/saídas) para controle de caixa dos artesãos
+CREATE TABLE IF NOT EXISTS movimentacoes (
+    id TEXT PRIMARY KEY,
+    artesao_id TEXT NOT NULL,
+    tipo TEXT NOT NULL,
+    descricao TEXT,
+    valor NUMERIC NOT NULL,
+    data_hora TEXT NOT NULL,
+    CONSTRAINT fk_movimentacoes_artesao FOREIGN KEY (artesao_id) REFERENCES artesaos(id) ON DELETE CASCADE
+);

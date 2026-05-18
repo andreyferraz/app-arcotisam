@@ -5,10 +5,10 @@
   <title>Painel Artesão — Arcotisam</title>
 </head>
 
-<body th:replace="~{layout :: layout('Painel Artesão', ~{::content})}">
+<body th:replace="~{layout :: layout('Painel Artesão', ~{::artesaoContent})}">
 
-<div th:fragment="content">
-  <section class="page-section container">
+<div th:fragment="artesaoContent">
+  <section class="page-section active container">
     <h2>Painel do Artesão</h2>
 
     <div th:if="${mensagem}" class="alert alert-warning" th:text="${mensagem}"></div>
@@ -19,6 +19,7 @@
       <h3>Meus Produtos</h3>
 
       <form th:action="@{/artesao/produtos/salvar}" method="post" enctype="multipart/form-data" class="product-form">
+        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
         <div>
           <label>Nome</label>
           <input type="text" name="nome" required />
@@ -49,7 +50,8 @@
             <td th:text="${p.nome}"></td>
             <td th:text="${p.preco}"></td>
             <td>
-              <form th:action="@{'/artesao/produtos/' + ${p.id} + '/excluir'}" method="post" style="display:inline">
+              <form th:action="@{/artesao/produtos/{id}/excluir(id=${p.id})}" method="post" style="display:inline">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
                 <button type="submit" class="btn btn-danger">Excluir</button>
               </form>
             </td>
@@ -61,6 +63,7 @@
     <div class="card">
       <h3>Controle de Caixa</h3>
       <form th:action="@{/artesao/lancamentos/salvar}" method="post">
+        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
         <div>
           <label>Tipo</label>
           <select name="tipo">
@@ -98,6 +101,7 @@
     <div class="card">
       <h3>Alterar Senha</h3>
       <form th:action="@{/artesao/senha/alterar}" method="post">
+        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
         <div>
           <label>Nova senha</label>
           <input type="password" name="novaSenha" required />
@@ -110,6 +114,8 @@
 
   </section>
 </div>
+
+
 
 </body>
 </html>
