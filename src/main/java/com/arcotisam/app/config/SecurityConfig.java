@@ -9,7 +9,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 
 import com.arcotisam.app.model.Usuario;
-import com.arcotisam.app.repository.UsuarioRepository;
+import com.arcotisam.app.service.UsuarioService;
 
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -22,8 +22,10 @@ import org.springframework.security.web.SecurityFilterChain;
 public class SecurityConfig {
 
     private static final String LOGIN_PATH = "/login";
+    private static final String ROLE_PREFIX = "ROLE_";
     private static final String ROLE_ADMIN_MASTER = "ADMIN_MASTER";
     private static final String ROLE_ARTESAO = "ARTESAO";
+    private static final String ARTESAO_PATH = "/artesao/**";
 
     @Bean
     @Order(2)
@@ -52,10 +54,10 @@ public class SecurityConfig {
                     .requestMatchers(HttpMethod.POST, "/artesaos/**").hasRole(ROLE_ADMIN_MASTER)
                     .requestMatchers(HttpMethod.DELETE, "/artesaos/**").hasRole(ROLE_ADMIN_MASTER)
                     // Artesão endpoints: allow POST/DELETE for authenticated artesãos and admins
-                    .requestMatchers(HttpMethod.POST, "/artesao/**").hasAnyRole(ROLE_ADMIN_MASTER, ROLE_ARTESAO)
-                    .requestMatchers(HttpMethod.DELETE, "/artesao/**").hasAnyRole(ROLE_ADMIN_MASTER, ROLE_ARTESAO)
+                    .requestMatchers(HttpMethod.POST, ARTESAO_PATH).hasAnyRole(ROLE_ADMIN_MASTER, ROLE_ARTESAO)
+                    .requestMatchers(HttpMethod.DELETE, ARTESAO_PATH).hasAnyRole(ROLE_ADMIN_MASTER, ROLE_ARTESAO)
                     .requestMatchers("/admin", "/admin/**").hasRole(ROLE_ADMIN_MASTER)
-                    .requestMatchers("/artesao", "/artesao/**").hasAnyRole(ROLE_ADMIN_MASTER, ROLE_ARTESAO)
+                    .requestMatchers("/artesao", ARTESAO_PATH).hasAnyRole(ROLE_ADMIN_MASTER, ROLE_ARTESAO)
                     .anyRequest().authenticated()
                 )
                 .formLogin(form -> form
@@ -86,8 +88,8 @@ public class SecurityConfig {
     }
 
     @Bean
-        public UserDetailsService userDetailsService(UsuarioRepository usuarioRepository) {
-        return username -> usuarioRepository.findByUsername(username)
+        public UserDetailsService userDetailsService(UsuarioService usuarioService) {
+        return username -> usuarioService.buscarPorUsername(username)
             .map(this::toUserDetails)
             .orElseThrow(() -> new UsernameNotFoundException("Usuário não encontrado: " + username));
     }
@@ -96,9 +98,9 @@ public class SecurityConfig {
     public AuthenticationSuccessHandler authenticationSuccessHandler() {
     return (request, response, authentication) -> {
         boolean isAdmin = authentication.getAuthorities().stream()
-            .anyMatch(authority -> authority.getAuthority().equals("ROLE_" + ROLE_ADMIN_MASTER));
+            .anyMatch(authority -> authority.getAuthority().equals(ROLE_PREFIX + ROLE_ADMIN_MASTER));
         boolean isArtesao = authentication.getAuthorities().stream()
-            .anyMatch(authority -> authority.getAuthority().equals("ROLE_" + ROLE_ARTESAO));
+            .anyMatch(authority -> authority.getAuthority().equals(ROLE_PREFIX + ROLE_ARTESAO));
         if (isAdmin) {
             response.sendRedirect("/admin");
         } else if (isArtesao) {
@@ -113,7 +115,7 @@ public class SecurityConfig {
             String roleName = ROLE_ARTESAO;
             if (usuario.getRole() != null) {
                 // Role enum values are like ROLE_ADMIN_MASTER, ROLE_ARTESAO
-                roleName = usuario.getRole().name().replace("ROLE_", "");
+                roleName = usuario.getRole().name().replace(ROLE_PREFIX, "");
             }
 
             return User.withUsername(usuario.getUsername())

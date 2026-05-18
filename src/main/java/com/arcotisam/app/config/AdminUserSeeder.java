@@ -3,8 +3,8 @@ package com.arcotisam.app.config;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 
 import com.arcotisam.app.service.UsuarioService;
 
@@ -13,6 +13,9 @@ public class AdminUserSeeder implements CommandLineRunner {
 
     private static final Logger LOG = LoggerFactory.getLogger(AdminUserSeeder.class);
 
+    @Value("${app.admin.seed-password}")
+    private String seedPassword;
+
     private final UsuarioService usuarioService;
 
     public AdminUserSeeder(UsuarioService usuarioService) {
@@ -20,10 +23,8 @@ public class AdminUserSeeder implements CommandLineRunner {
     }
 
     @Override
-    @Transactional
     public void run(String... args) throws Exception {
         String username = "admin";
-        String password = "senha123";
 
         try {
             var opt = usuarioService.buscarPorUsername(username);
@@ -32,10 +33,16 @@ public class AdminUserSeeder implements CommandLineRunner {
                 return;
             }
 
-            usuarioService.criarAdmin(username, password, null);
+            usuarioService.criarAdmin(username, seedPassword, null);
             LOG.info("Admin user '{}' created by seed.", username);
         } catch (Exception ex) {
-            LOG.error("Failed to seed admin user: {}", ex.getMessage());
+            String message = ex.getMessage();
+            if (message != null && message.contains("UNIQUE constraint failed: usuarios.username")) {
+                LOG.info("Admin user '{}' already exists, skipping seed.", username);
+                return;
+            }
+
+            LOG.error("Failed to seed admin user: {}", message);
         }
     }
 }

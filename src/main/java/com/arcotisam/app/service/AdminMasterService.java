@@ -36,18 +36,21 @@ public class AdminMasterService {
     private final ProdutoRepository produtoRepository;
     private final PasswordEncoder passwordEncoder;
     private final FileUploadService fileUploadService;
+    private final UsuarioService usuarioService;
 
     public AdminMasterService(
             ArtesaoRepository artesaoRepository,
             UsuarioRepository usuarioRepository,
             ProdutoRepository produtoRepository,
             PasswordEncoder passwordEncoder,
-            FileUploadService fileUploadService) {
+            FileUploadService fileUploadService,
+            UsuarioService usuarioService) {
         this.artesaoRepository = artesaoRepository;
         this.usuarioRepository = usuarioRepository;
         this.produtoRepository = produtoRepository;
         this.passwordEncoder = passwordEncoder;
         this.fileUploadService = fileUploadService;
+        this.usuarioService = usuarioService;
     }
 
     public ArtesaoAdminForm carregarFormulario(UUID id) {
@@ -147,19 +150,18 @@ public class AdminMasterService {
         String username = form.getUsername().trim();
         String password = form.getPassword().trim();
 
-        if (usuarioRepository.findByUsername(username).isPresent()) {
+        if (usuarioService.buscarPorUsername(username).isPresent()) {
             throw new IllegalArgumentException("Usuario ja existe: " + username);
         }
 
         String fotoUrl = salvarFotoSeExistir(foto);
 
-        Usuario usuario = new Usuario(
-                UUID.randomUUID(),
-                username,
-                passwordEncoder.encode(password),
-                null,
-                Role.ROLE_ARTESAO,
-                true);
+        Usuario usuario = new Usuario();
+        usuario.setId(UUID.randomUUID());
+        usuario.setUsername(username);
+        usuario.setPassword(passwordEncoder.encode(password));
+        usuario.setRole(Role.ROLE_ARTESAO);
+        usuario.setNew(true);
 
         Artesao artesao = new Artesao(
                 UUID.randomUUID(),
@@ -171,7 +173,7 @@ public class AdminMasterService {
                 new LinkedHashSet<>(),
                 true);
 
-        usuarioRepository.save(usuario);
+        usuarioService.salvarNovoUsuario(usuario);
         artesaoRepository.save(artesao);
     }
 
@@ -189,7 +191,7 @@ public class AdminMasterService {
 
         String novoUsername = form.getUsername().trim();
         if (!novoUsername.equals(usuario.getUsername())) {
-            usuarioRepository.findByUsername(novoUsername)
+            usuarioService.buscarPorUsername(novoUsername)
                     .filter(existing -> !existing.getId().equals(usuario.getId()))
                     .ifPresent(existing -> {
                         throw new IllegalArgumentException("Usuario ja existe: " + novoUsername);

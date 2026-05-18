@@ -26,6 +26,20 @@ public class MovimentacaoService {
         return movimentacaoRepository.findByArtesaoIdOrderByDataHoraDesc(artesaoId);
     }
 
+    public java.util.List<Movimentacao> listarPorPeriodo(UUID artesaoId, java.time.OffsetDateTime inicio, java.time.OffsetDateTime fim) {
+        ValidationUtils.validarCampoObrigatorio(artesaoId, "artesaoId");
+        var all = movimentacaoRepository.findByArtesaoIdOrderByDataHoraDesc(artesaoId);
+        if (inicio == null && fim == null) return all;
+        java.util.List<Movimentacao> out = new java.util.ArrayList<>();
+        for (Movimentacao m : all) {
+            var dt = m.getDataHora();
+            boolean afterStart = inicio == null || !dt.isBefore(inicio);
+            boolean beforeEnd = fim == null || !dt.isAfter(fim);
+            if (afterStart && beforeEnd) out.add(m);
+        }
+        return out;
+    }
+
     @Transactional
     public Movimentacao lancar(UUID artesaoId, String tipo, String descricao, BigDecimal valor) {
         ValidationUtils.validarCampoObrigatorio(artesaoId, "artesaoId");
