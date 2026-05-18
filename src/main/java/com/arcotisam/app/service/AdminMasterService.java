@@ -24,6 +24,7 @@ import com.arcotisam.app.model.Usuario;
 import com.arcotisam.app.repository.ArtesaoRepository;
 import com.arcotisam.app.repository.ProdutoRepository;
 import com.arcotisam.app.repository.UsuarioRepository;
+import com.arcotisam.app.repository.MovimentacaoRepository;
 import com.arcotisam.app.utils.ValidationUtils;
 
 @Service
@@ -34,6 +35,7 @@ public class AdminMasterService {
     private final ArtesaoRepository artesaoRepository;
     private final UsuarioRepository usuarioRepository;
     private final ProdutoRepository produtoRepository;
+    private final MovimentacaoRepository movimentacaoRepository;
     private final PasswordEncoder passwordEncoder;
     private final FileUploadService fileUploadService;
     private final UsuarioService usuarioService;
@@ -44,13 +46,15 @@ public class AdminMasterService {
             ProdutoRepository produtoRepository,
             PasswordEncoder passwordEncoder,
             FileUploadService fileUploadService,
-            UsuarioService usuarioService) {
+            UsuarioService usuarioService,
+            MovimentacaoRepository movimentacaoRepository) {
         this.artesaoRepository = artesaoRepository;
         this.usuarioRepository = usuarioRepository;
         this.produtoRepository = produtoRepository;
         this.passwordEncoder = passwordEncoder;
         this.fileUploadService = fileUploadService;
         this.usuarioService = usuarioService;
+        this.movimentacaoRepository = movimentacaoRepository;
     }
 
     public ArtesaoAdminForm carregarFormulario(UUID id) {
@@ -136,6 +140,12 @@ public class AdminMasterService {
             } catch (Exception ignored) {
                 // ignore cleanup failures
             }
+        }
+
+        // delete all movimentacoes belonging to this artesao
+        java.util.List<com.arcotisam.app.model.Movimentacao> movs = movimentacaoRepository.findByArtesaoIdOrderByDataHoraDesc(artesao.getId());
+        for (var mv : movs) {
+            movimentacaoRepository.deleteById(mv.getId());
         }
 
         // delete all products belonging to this artesao (and their images)
