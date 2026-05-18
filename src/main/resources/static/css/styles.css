@@ -543,6 +543,30 @@ p {
   color: var(--color-ocean);
 }
 
+/* Generic alert styles used in templates (alert, alert-success, alert-danger) */
+.alert {
+  margin-top: 12px;
+  margin-bottom: 12px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  font-weight: 700;
+}
+.alert-success {
+  background: rgba(94, 137, 144, 0.12);
+  color: var(--color-ocean);
+  border: 1px solid rgba(94,137,144,0.14);
+}
+.alert-warning {
+  background: rgba(224, 158, 54, 0.10);
+  color: #7a4f18;
+  border: 1px solid rgba(224,158,54,0.12);
+}
+.alert-danger {
+  background: rgba(190, 90, 66, 0.12);
+  color: var(--color-terracotta);
+  border: 1px solid rgba(190,90,66,0.12);
+}
+
 /* Admin */
 .admin-page {
   display: block;
@@ -1503,3 +1527,5 @@ p {
 .pagination .btn { padding:6px 10px; border-radius:6px; background:#f3f7f7; border:1px solid rgba(0,0,0,0.06); cursor:pointer; }
 .pagination .btn.active { background:#5e8990; color:#fff; }
 .pagination .btn:disabled { opacity:0.5; cursor:not-allowed; }
+
+.pagination-info { margin-right:12px; align-self:center; font-weight:800; color:var(--color-petrol); }

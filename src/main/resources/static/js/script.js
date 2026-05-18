@@ -140,23 +140,36 @@ function initTablePagination(tableId, tbodyId, pagerId, pageSize = 5) {
   if (!tbody || !pager) return;
 
   const rows = Array.from(tbody.querySelectorAll('tr'));
-  const total = rows.length;
-  const pages = Math.max(1, Math.ceil(total / pageSize));
+  // pagination will consider only rows that are NOT marked with 'filter-hidden'
+  const visibleRows = () => rows.filter(r => !r.classList.contains('filter-hidden'));
+  const total = () => visibleRows().length;
+  const pages = () => Math.max(1, Math.ceil(total() / pageSize));
   let current = 1;
 
   function renderPage(page) {
-    current = Math.min(Math.max(1, page), pages);
+    current = Math.min(Math.max(1, page), pages());
     const start = (current - 1) * pageSize;
     const end = start + pageSize;
-    rows.forEach((r, i) => {
-      r.style.display = (i >= start && i < end) ? '' : 'none';
+    const vr = visibleRows();
+    // hide all rows first
+    rows.forEach(r => { r.style.display = 'none'; });
+    // show only the page slice of visible rows
+    vr.forEach((r, idx) => {
+      if (idx >= start && idx < end) r.style.display = '';
+      else r.style.display = 'none';
     });
     renderControls();
   }
 
   function renderControls() {
     pager.innerHTML = '';
-    if (pages <= 1) return;
+    if (pages() <= 1) return;
+
+    // info text: Página X de Y
+    const info = document.createElement('span');
+    info.className = 'pagination-info';
+    info.textContent = `Página ${current} de ${pages()}`;
+    pager.appendChild(info);
 
     const prev = document.createElement('button');
     prev.type = 'button';
@@ -169,7 +182,7 @@ function initTablePagination(tableId, tbodyId, pagerId, pageSize = 5) {
     // page numbers (limit to a small window)
     const windowSize = 5;
     let startPage = Math.max(1, current - Math.floor(windowSize / 2));
-    let endPage = Math.min(pages, startPage + windowSize - 1);
+    let endPage = Math.min(pages(), startPage + windowSize - 1);
     if (endPage - startPage + 1 < windowSize) {
       startPage = Math.max(1, endPage - windowSize + 1);
     }
@@ -187,7 +200,7 @@ function initTablePagination(tableId, tbodyId, pagerId, pageSize = 5) {
     next.type = 'button';
     next.className = 'btn btn-sm';
     next.textContent = '»';
-    next.disabled = current === pages;
+    next.disabled = current === pages();
     next.addEventListener('click', () => renderPage(current + 1));
     pager.appendChild(next);
   }
@@ -344,6 +357,96 @@ function postLoadInit(page) {
   if (document.getElementById('produtosTbody')) {
     initTablePagination('produtosTable', 'produtosTbody', 'produtosPagination', 5);
   }
+
+  // init edit buttons for produtos table (server-rendered rows)
+  initProdutoEditButtons();
+
+  // initialize product search input if present
+  const produtoSearch = document.getElementById('produtoSearch');
+  if (produtoSearch) {
+    produtoSearch.addEventListener('input', () => {
+      applyProdutoSearch(produtoSearch.value.trim().toLowerCase());
+      // re-init pagination to reflect filtered results
+      initTablePagination('produtosTable', 'produtosTbody', 'produtosPagination', 5);
+    });
+  }
+}
+
+function initProdutoEditButtons() {
+  const tbody = document.getElementById('produtosTbody');
+  if (!tbody) return;
+
+  const form = document.querySelector('.product-form');
+  const inputId = document.getElementById('produtoId');
+  const inputNome = form.querySelector('input[name="nome"]');
+  const inputDescricao = form.querySelector('input[name="descricao"]');
+  const inputPreco = form.querySelector('input[name="preco"]');
+  const inputImagem = form.querySelector('input[name="imagem"]');
+  const submitBtn = document.getElementById('produtoSubmit');
+  const cancelBtn = document.getElementById('produtoCancel');
+
+  // event delegation on tbody for edit buttons
+  tbody.addEventListener('click', (ev) => {
+    const btn = ev.target.closest && ev.target.closest('.edit-btn');
+    if (!btn) return;
+    const id = btn.getAttribute('data-id');
+    const nome = btn.getAttribute('data-nome');
+    const descricao = btn.getAttribute('data-descricao');
+    const preco = btn.getAttribute('data-preco');
+
+    inputId.value = id || '';
+    inputNome.value = nome || '';
+    inputDescricao.value = descricao || '';
+    inputPreco.value = preco || '';
+    if (inputImagem) inputImagem.value = '';
+
+    form.action = '/artesao/produtos/' + id + '/atualizar';
+    submitBtn.textContent = 'Salvar Alterações';
+    cancelBtn.style.display = '';
+  });
+
+  if (cancelBtn) {
+    cancelBtn.addEventListener('click', () => {
+      resetProdutoForm();
+    });
+  }
+}
+
+function applyProdutoSearch(query) {
+  const tbody = document.getElementById('produtosTbody');
+  if (!tbody) return;
+  const rows = Array.from(tbody.querySelectorAll('tr'));
+  rows.forEach(row => {
+    const nomeCell = row.querySelectorAll('td')[1];
+    const nomeText = nomeCell ? nomeCell.textContent.trim().toLowerCase() : '';
+    if (!query) {
+      row.classList.remove('filter-hidden');
+    } else {
+      if (nomeText.indexOf(query) === -1) row.classList.add('filter-hidden');
+      else row.classList.remove('filter-hidden');
+    }
+  });
+}
+
+function resetProdutoForm() {
+  const form = document.querySelector('.product-form');
+  if (!form) return;
+  form.action = '/artesao/produtos/salvar';
+  const inputId = document.getElementById('produtoId');
+  const inputNome = form.querySelector('input[name="nome"]');
+  const inputDescricao = form.querySelector('input[name="descricao"]');
+  const inputPreco = form.querySelector('input[name="preco"]');
+  const inputImagem = form.querySelector('input[name="imagem"]');
+  const submitBtn = document.getElementById('produtoSubmit');
+  const cancelBtn = document.getElementById('produtoCancel');
+
+  if (inputId) inputId.value = '';
+  if (inputNome) inputNome.value = '';
+  if (inputDescricao) inputDescricao.value = '';
+  if (inputPreco) inputPreco.value = '';
+  if (inputImagem) inputImagem.value = '';
+  if (submitBtn) submitBtn.textContent = 'Cadastrar Produto';
+  if (cancelBtn) cancelBtn.style.display = 'none';
 }
 
 document.getElementById("currentYear").textContent = new Date().getFullYear();

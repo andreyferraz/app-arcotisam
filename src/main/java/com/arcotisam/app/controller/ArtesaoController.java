@@ -110,6 +110,45 @@ public class ArtesaoController {
         return "redirect:/artesao";
     }
 
+    @PostMapping("/produtos/{id}/atualizar")
+    public String atualizarProduto(@PathVariable UUID id,
+                                   @RequestParam String nome,
+                                   @RequestParam(required = false) String descricao,
+                                   @RequestParam(required = false) java.math.BigDecimal preco,
+                                   @RequestParam(required = false) MultipartFile imagem,
+                                   RedirectAttributes redirectAttributes) {
+        try {
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            String username = auth != null ? auth.getName() : null;
+            if (username == null) return "redirect:/login";
+
+            var optUser = usuarioService.buscarPorUsername(username);
+            if (optUser.isEmpty()) return "redirect:/login";
+
+            var user = optUser.get();
+            var optArtesao = artesaoService.buscarPorUsuarioId(user.getId());
+            if (optArtesao.isEmpty()) {
+                redirectAttributes.addFlashAttribute("erro", "Perfil de artesão não encontrado.");
+                return "redirect:/artesao";
+            }
+
+            var artesao = optArtesao.get();
+
+            // ownership check
+            var optProd = produtoService.buscarPorId(id);
+            if (optProd.isEmpty() || !artesao.getId().equals(optProd.get().getArtesaoId())) {
+                redirectAttributes.addFlashAttribute("erro", "Produto não encontrado ou sem permissão para editar.");
+                return "redirect:/artesao";
+            }
+
+            produtoService.atualizar(id, nome, descricao, preco, imagem);
+            redirectAttributes.addFlashAttribute("sucesso", "Produto atualizado com sucesso.");
+        } catch (RuntimeException ex) {
+            redirectAttributes.addFlashAttribute("erro", ex.getMessage());
+        }
+        return "redirect:/artesao";
+    }
+
     @PostMapping("/lancamentos/salvar")
     public String salvarLancamento(@RequestParam String tipo,
                                    @RequestParam(required = false) String descricao,
