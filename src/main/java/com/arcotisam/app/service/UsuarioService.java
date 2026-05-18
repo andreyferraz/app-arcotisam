@@ -118,10 +118,25 @@ public class UsuarioService {
         ValidationUtils.validarCampoStringObrigatorio(novaSenha, "novaSenha");
 
         Usuario existente = usuarioRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Usuario nao encontrado."));
+            .orElseThrow(() -> new IllegalArgumentException("Usuario nao encontrado."));
 
-        existente.setPassword(passwordEncoder.encode(novaSenha));
-        return usuarioRepository.save(existente);
+        String hash = passwordEncoder.encode(novaSenha);
+
+        var params = new MapSqlParameterSource()
+            .addValue("id", id.toString())
+            .addValue(PASSWORD_FIELD, hash);
+
+        namedParameterJdbcTemplate.update(
+            "UPDATE usuarios SET password = :password WHERE id = :id",
+            params);
+
+        // reload and return using explicit query to avoid possible repository mapping issues
+        var out = namedParameterJdbcTemplate.query(
+            "SELECT id, username, password, role, foto_url FROM usuarios WHERE id = :id",
+            new MapSqlParameterSource().addValue("id", id.toString()),
+            this::mapUsuario);
+
+        return out.stream().findFirst().orElseThrow(() -> new IllegalArgumentException("Usuario nao encontrado apos update."));
     }
 
     @Transactional
