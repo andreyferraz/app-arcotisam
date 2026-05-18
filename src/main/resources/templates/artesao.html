@@ -9,7 +9,7 @@
 
 <div th:fragment="artesaoContent">
   <section class="page-section active container">
-    <h2>Painel do Artesão</h2>
+    <h2>Painel do Artesão — <span th:text="${artesao.nome}">Nome do Artesão</span></h2>
 
     <div th:if="${mensagem}" class="alert alert-warning" th:text="${mensagem}"></div>
     <div th:if="${sucesso}" class="alert alert-success" th:text="${sucesso}"></div>
