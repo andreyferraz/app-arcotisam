@@ -1,7 +1,8 @@
 <!DOCTYPE html>
 <html lang="pt-BR"
-      xmlns:th="http://www.thymeleaf.org"
-      th:fragment="layout(title, content)">
+	xmlns:th="http://www.thymeleaf.org"
+	xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+	th:fragment="layout(title, content)">
 
 <head>
 	<meta charset="UTF-8" />
@@ -35,10 +36,23 @@
 				<a th:href="@{/loja}" class="nav-link">Loja</a>
 				<a th:href="@{/associados}" class="nav-link">Associados</a>
 				<a th:href="@{/contato}" class="nav-link">Contato</a>
-				<a th:href="@{/login}" class="nav-link admin-link" aria-label="Entrar no painel admin">
+				<a sec:authorize="isAnonymous()" th:href="@{/login}" class="nav-link admin-link" aria-label="Entrar no painel admin">
 					<span aria-hidden="true">🔐</span>
 					<span>Login Admin</span>
 				</a>
+
+				<a sec:authorize="hasRole('ADMIN_MASTER')" th:href="@{/admin}" class="nav-link admin-link" aria-label="Painel admin">
+					<span aria-hidden="true">🔐</span>
+					<span>Painel Admin</span>
+				</a>
+
+				<form sec:authorize="hasRole('ADMIN_MASTER')" th:action="@{/logout}" method="post" style="display:inline">
+					<input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+					<button type="submit" class="nav-link admin-link logout-button" aria-label="Sair">
+						<span aria-hidden="true">🔓</span>
+						<span>Sair</span>
+					</button>
+				</form>
 				<a th:href="@{/carrinho}" class="cart-link nav-link">
 					Carrinho
 					<span class="cart-count" id="cartCount">0</span>
