@@ -93,7 +93,15 @@ public class SecurityConfig {
     return (request, response, authentication) -> {
         boolean isAdmin = authentication.getAuthorities().stream()
             .anyMatch(authority -> authority.getAuthority().equals("ROLE_" + ROLE_ADMIN_MASTER));
-        response.sendRedirect(isAdmin ? "/admin" : "/");
+        boolean isArtesao = authentication.getAuthorities().stream()
+            .anyMatch(authority -> authority.getAuthority().equals("ROLE_" + ROLE_ARTESAO));
+        if (isAdmin) {
+            response.sendRedirect("/admin");
+        } else if (isArtesao) {
+            response.sendRedirect("/artesao");
+        } else {
+            response.sendRedirect("/");
+        }
     };
     }
 

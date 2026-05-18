@@ -8,4 +8,6 @@ import com.arcotisam.app.model.Produto;
 
 public interface ProdutoRepository extends CrudRepository<Produto, UUID> {
 
+	java.util.List<Produto> findByArtesaoId(UUID artesaoId);
+
 }

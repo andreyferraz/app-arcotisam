@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="pt-BR">
+
+<head>
+  <title>Painel Artesão — Arcotisam</title>
+</head>
+
+<body th:replace="~{layout :: layout('Painel Artesão', ~{::content})}">
+
+<div th:fragment="content">
+  <section class="page-section container">
+    <h2>Painel do Artesão</h2>
+
+    <div th:if="${mensagem}" class="alert alert-warning" th:text="${mensagem}"></div>
+    <div th:if="${sucesso}" class="alert alert-success" th:text="${sucesso}"></div>
+    <div th:if="${erro}" class="alert alert-danger" th:text="${erro}"></div>
+
+    <div class="card">
+      <h3>Meus Produtos</h3>
+
+      <form th:action="@{/artesao/produtos/salvar}" method="post" enctype="multipart/form-data" class="product-form">
+        <div>
+          <label>Nome</label>
+          <input type="text" name="nome" required />
+        </div>
+        <div>
+          <label>Descrição</label>
+          <input type="text" name="descricao" />
+        </div>
+        <div>
+          <label>Preço</label>
+          <input type="number" step="0.01" name="preco" />
+        </div>
+        <div>
+          <label>Imagem</label>
+          <input type="file" name="imagem" accept="image/*" />
+        </div>
+        <div>
+          <button class="btn btn-primary" type="submit">Cadastrar Produto</button>
+        </div>
+      </form>
+
+      <table>
+        <thead>
+          <tr><th>Nome</th><th>Preço</th><th>Ações</th></tr>
+        </thead>
+        <tbody>
+          <tr th:each="p : ${produtos}">
+            <td th:text="${p.nome}"></td>
+            <td th:text="${p.preco}"></td>
+            <td>
+              <form th:action="@{'/artesao/produtos/' + ${p.id} + '/excluir'}" method="post" style="display:inline">
+                <button type="submit" class="btn btn-danger">Excluir</button>
+              </form>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <h3>Controle de Caixa</h3>
+      <form th:action="@{/artesao/lancamentos/salvar}" method="post">
+        <div>
+          <label>Tipo</label>
+          <select name="tipo">
+            <option value="ENTRADA">Entrada</option>
+            <option value="SAIDA">Saída</option>
+          </select>
+        </div>
+        <div>
+          <label>Descrição</label>
+          <input type="text" name="descricao" />
+        </div>
+        <div>
+          <label>Valor</label>
+          <input type="number" step="0.01" name="valor" required />
+        </div>
+        <div>
+          <button class="btn btn-primary" type="submit">Registrar</button>
+        </div>
+      </form>
+
+      <h4>Lançamentos Recentes</h4>
+      <table>
+        <thead><tr><th>Data</th><th>Tipo</th><th>Descrição</th><th>Valor</th></tr></thead>
+        <tbody>
+          <tr th:each="m : ${movimentacoes}">
+            <td th:text="${m.dataHora}"></td>
+            <td th:text="${m.tipo}"></td>
+            <td th:text="${m.descricao}"></td>
+            <td th:text="${m.valor}"></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <h3>Alterar Senha</h3>
+      <form th:action="@{/artesao/senha/alterar}" method="post">
+        <div>
+          <label>Nova senha</label>
+          <input type="password" name="novaSenha" required />
+        </div>
+        <div>
+          <button class="btn btn-primary" type="submit">Alterar senha</button>
+        </div>
+      </form>
+    </div>
+
+  </section>
+</div>
+
+</body>
+</html>

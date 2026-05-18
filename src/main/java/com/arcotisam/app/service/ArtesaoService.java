@@ -30,6 +30,11 @@ public class ArtesaoService {
         return artesaoRepository.findById(id);
     }
 
+    public Optional<Artesao> buscarPorUsuarioId(UUID usuarioId) {
+        ValidationUtils.validarCampoObrigatorio(usuarioId, "usuarioId");
+        return artesaoRepository.findByUsuarioId(usuarioId);
+    }
+
     @Transactional
     public Artesao criarArtesao(String nome, String descricao, String whatsapp, UUID usuarioId, MultipartFile foto) {
         ValidationUtils.validarCampoStringObrigatorio(nome, "nome");

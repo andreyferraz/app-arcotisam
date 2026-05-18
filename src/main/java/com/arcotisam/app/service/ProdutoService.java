@@ -31,6 +31,11 @@ public class ProdutoService {
         return produtoRepository.findById(id);
     }
 
+    public java.util.List<Produto> listarPorArtesao(UUID artesaoId) {
+        ValidationUtils.validarCampoObrigatorio(artesaoId, "artesaoId");
+        return produtoRepository.findByArtesaoId(artesaoId);
+    }
+
     @Transactional
     public Produto criarProduto(String nome, String descricao, BigDecimal preco, UUID artesaoId, MultipartFile imagem) {
         ValidationUtils.validarCampoStringObrigatorio(nome, "nome");
