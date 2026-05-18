@@ -20,17 +20,22 @@ import lombok.NoArgsConstructor;
 public class Produto implements Persistable<UUID> {
 
     @Id
+    @Column("id")
     private UUID id;
 
+    @Column("nome")
     private String nome;
 
+    @Column("descricao")
     private String descricao;
 
+    @Column("preco")
     private BigDecimal preco;
 
     @Column("imagem_url")
     private String imagemUrl;
-
+    
+    @Column("ativo")
     private Boolean ativo;
 
     @Column("quantidade_vendida")

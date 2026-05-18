@@ -150,11 +150,15 @@ public class AdminMasterService {
                 new MapSqlParameterSource().addValue("artesaoId", artesao.getId().toString()));
 
         // remove product images first, then the rows
-        java.util.List<Produto> produtos = produtoRepository.findByArtesaoId(artesao.getId());
-        for (Produto p : produtos) {
-            if (p.getImagemUrl() != null && !p.getImagemUrl().isBlank()) {
+        List<String> imagensProdutos = namedParameterJdbcTemplate.query(
+                "SELECT imagem_url FROM produtos WHERE artesao_id = :artesaoId",
+                new MapSqlParameterSource().addValue("artesaoId", artesao.getId().toString()),
+                (rs, rowNum) -> rs.getString("imagem_url")
+        );
+        for (String imagemUrl : imagensProdutos) {
+            if (imagemUrl != null && !imagemUrl.isBlank()) {
                 try {
-                    fileUploadService.removerImagem(p.getImagemUrl());
+                    fileUploadService.removerImagem(imagemUrl);
                 } catch (Exception ignored) {
                     // ignore cleanup failures
                 }

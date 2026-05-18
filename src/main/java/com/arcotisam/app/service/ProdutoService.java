@@ -4,6 +4,8 @@ import java.math.BigDecimal;
 import java.util.Optional;
 import java.util.UUID;
 
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -19,11 +21,13 @@ public class ProdutoService {
     private final ProdutoRepository produtoRepository;
     private final ArtesaoRepository artesaoRepository;
     private final FileUploadService fileUploadService;
+    private final NamedParameterJdbcTemplate namedParameterJdbcTemplate;
 
-    public ProdutoService(ProdutoRepository produtoRepository, ArtesaoRepository artesaoRepository, FileUploadService fileUploadService) {
+    public ProdutoService(ProdutoRepository produtoRepository, ArtesaoRepository artesaoRepository, FileUploadService fileUploadService, NamedParameterJdbcTemplate namedParameterJdbcTemplate) {
         this.produtoRepository = produtoRepository;
         this.artesaoRepository = artesaoRepository;
         this.fileUploadService = fileUploadService;
+        this.namedParameterJdbcTemplate = namedParameterJdbcTemplate;
     }
 
     public Optional<Produto> buscarPorId(UUID id) {
@@ -52,7 +56,21 @@ public class ProdutoService {
             novo.setImagemUrl(savedName);
         }
 
-        return produtoRepository.save(novo);
+        namedParameterJdbcTemplate.update(
+            "INSERT INTO produtos (id, nome, descricao, preco, imagem_url, ativo, quantidade_vendida, artesao_id) " +
+            "VALUES (:id, :nome, :descricao, :preco, :imagemUrl, :ativo, :quantidadeVendida, :artesaoId)",
+            new MapSqlParameterSource()
+                .addValue("id", novo.getId().toString())
+                .addValue("nome", novo.getNome())
+                .addValue("descricao", novo.getDescricao())
+                .addValue("preco", novo.getPreco())
+                .addValue("imagemUrl", novo.getImagemUrl())
+                .addValue("ativo", Boolean.TRUE.equals(novo.getAtivo()) ? 1 : 0)
+                .addValue("quantidadeVendida", novo.getQuantidadeVendida())
+                .addValue("artesaoId", novo.getArtesaoId().toString())
+        );
+
+        return novo;
     }
 
     @Transactional
@@ -74,7 +92,22 @@ public class ProdutoService {
             existente.setImagemUrl(savedName);
         }
 
-        return produtoRepository.save(existente);
+        namedParameterJdbcTemplate.update(
+            "UPDATE produtos SET nome = :nome, descricao = :descricao, preco = :preco, " +
+            "imagem_url = :imagemUrl, ativo = :ativo, quantidade_vendida = :quantidadeVendida, artesao_id = :artesaoId " +
+            "WHERE id = :id",
+            new MapSqlParameterSource()
+                .addValue("id", existente.getId().toString())
+                .addValue("nome", existente.getNome())
+                .addValue("descricao", existente.getDescricao())
+                .addValue("preco", existente.getPreco())
+                .addValue("imagemUrl", existente.getImagemUrl())
+                .addValue("ativo", Boolean.TRUE.equals(existente.getAtivo()) ? 1 : 0)
+                .addValue("quantidadeVendida", existente.getQuantidadeVendida())
+                .addValue("artesaoId", existente.getArtesaoId().toString())
+        );
+
+        return existente;
     }
 
     @Transactional
@@ -87,7 +120,9 @@ public class ProdutoService {
                 try { fileUploadService.removerImagem(p.getImagemUrl()); } catch (Exception e) { /* ignore */ }
             }
         }
-        produtoRepository.deleteById(id);
+        namedParameterJdbcTemplate.update(
+            "DELETE FROM produtos WHERE id = :id",
+            new MapSqlParameterSource().addValue("id", id.toString()));
     }
 
 }
