@@ -22,12 +22,16 @@ import lombok.NoArgsConstructor;
 public class Artesao implements Persistable<UUID>{
 
     @Id
+    @Column("id")
     private UUID id;
 
+    @Column("nome")
     private String nome;
 
+    @Column("descricao")
     private String descricao;
 
+    @Column("whatsapp")
     private String whatsapp;
 
     @Column("foto_url")

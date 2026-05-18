@@ -21,6 +21,7 @@ import lombok.NoArgsConstructor;
 public class Usuario implements Persistable<UUID>{
 
     @Id
+    @Column("id")
     private UUID id;
 
     @Column("username")
