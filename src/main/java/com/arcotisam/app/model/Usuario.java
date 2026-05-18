@@ -10,11 +10,13 @@ import org.springframework.data.relational.core.mapping.Table;
 
 import com.arcotisam.app.enuns.Role;
 
+import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Data
 @NoArgsConstructor
+@AllArgsConstructor
 @Table("usuarios")
 public class Usuario implements Persistable<UUID>{
 
