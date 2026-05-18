@@ -138,11 +138,21 @@ public class AdminMasterService {
             }
         }
 
-        if (artesao.getUsuarioId() != null) {
-            usuarioRepository.deleteById(artesao.getUsuarioId());
-            return;
+        // delete all products belonging to this artesao (and their images)
+        java.util.List<Produto> produtos = produtoRepository.findByArtesaoId(artesao.getId());
+        for (Produto p : produtos) {
+            if (p.getImagemUrl() != null && !p.getImagemUrl().isBlank()) {
+                try { fileUploadService.removerImagem(p.getImagemUrl()); } catch (Exception ignored) { }
+            }
+            produtoRepository.deleteById(p.getId());
         }
 
+        // delete linked user if exists
+        if (artesao.getUsuarioId() != null) {
+            try { usuarioRepository.deleteById(artesao.getUsuarioId()); } catch (Exception ignored) { }
+        }
+
+        // finally delete the artesao record
         artesaoRepository.deleteById(id);
     }
 
