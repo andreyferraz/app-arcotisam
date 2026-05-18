@@ -238,6 +238,41 @@ function addToCart(productId) {
   updateCartCount();
 }
 
+// Adiciona produto vindo do HTML server-rendered (quando não existe na lista `products` do cliente)
+function addServerProductToCartFromCardData(productId, btn) {
+  const card = btn.closest('.product-card');
+  if (!card) return;
+
+  const name = (card.querySelector('.product-title')?.textContent || '').trim();
+  const priceText = (card.querySelector('.price')?.textContent || '').trim();
+  let price = 0;
+  if (priceText) {
+    const cleaned = priceText.replace(/[^0-9,.-]/g, '').replace(',', '.');
+    price = parseFloat(cleaned) || 0;
+  }
+
+  const imgEl = card.querySelector('.product-image img');
+  let icon = '🧶';
+  if (imgEl) {
+    const src = imgEl.getAttribute('src') || imgEl.getAttribute('data-src') || imgEl.src;
+    if (src) icon = `<img src="${src}" alt="${name}" style="width:48px;height:48px;object-fit:cover;border-radius:8px;">`;
+  } else {
+    const txt = (card.querySelector('.product-image')?.textContent || '').trim();
+    if (txt) icon = txt;
+  }
+
+  const existing = cart.find(item => String(item.id) === String(productId));
+  if (existing) {
+    existing.quantity += 1;
+  } else {
+    cart.push({ id: String(productId), name: name || 'Produto', price: price, icon: icon, quantity: 1 });
+  }
+
+  saveCart();
+  renderCart();
+  updateCartCount();
+}
+
 function changeQuantity(productId, action) {
   const item = cart.find(product => product.id === productId);
 
@@ -352,6 +387,22 @@ function postLoadInit(page) {
   renderProducts();
   renderCart();
   updateCartCount();
+
+  // Delegação global para botões de adicionar em server-rendered pages
+  document.addEventListener('click', (ev) => {
+    const btn = ev.target.closest && ev.target.closest('.buy-btn');
+    if (!btn) return;
+    ev.preventDefault();
+    const idAttr = btn.getAttribute('data-id');
+    const numericId = (idAttr && !isNaN(Number(idAttr))) ? Number(idAttr) : idAttr;
+
+    // se o produto está na lista cliente, reutiliza addToCart
+    if (products.find(p => p.id === numericId)) {
+      addToCart(numericId);
+    } else {
+      addServerProductToCartFromCardData(idAttr, btn);
+    }
+  });
 
   // initialize table pagination for server-rendered products list
   if (document.getElementById('produtosTbody')) {
