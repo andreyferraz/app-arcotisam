@@ -9,6 +9,8 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.StreamSupport;
 
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,9 +24,9 @@ import com.arcotisam.app.model.Artesao;
 import com.arcotisam.app.model.Produto;
 import com.arcotisam.app.model.Usuario;
 import com.arcotisam.app.repository.ArtesaoRepository;
+import com.arcotisam.app.repository.MovimentacaoRepository;
 import com.arcotisam.app.repository.ProdutoRepository;
 import com.arcotisam.app.repository.UsuarioRepository;
-import com.arcotisam.app.repository.MovimentacaoRepository;
 import com.arcotisam.app.utils.ValidationUtils;
 
 @Service
@@ -35,10 +37,10 @@ public class AdminMasterService {
     private final ArtesaoRepository artesaoRepository;
     private final UsuarioRepository usuarioRepository;
     private final ProdutoRepository produtoRepository;
-    private final MovimentacaoRepository movimentacaoRepository;
     private final PasswordEncoder passwordEncoder;
     private final FileUploadService fileUploadService;
     private final UsuarioService usuarioService;
+    private final NamedParameterJdbcTemplate namedParameterJdbcTemplate;
 
     public AdminMasterService(
             ArtesaoRepository artesaoRepository,
@@ -47,14 +49,14 @@ public class AdminMasterService {
             PasswordEncoder passwordEncoder,
             FileUploadService fileUploadService,
             UsuarioService usuarioService,
-            MovimentacaoRepository movimentacaoRepository) {
+            NamedParameterJdbcTemplate namedParameterJdbcTemplate) {
         this.artesaoRepository = artesaoRepository;
         this.usuarioRepository = usuarioRepository;
         this.produtoRepository = produtoRepository;
         this.passwordEncoder = passwordEncoder;
         this.fileUploadService = fileUploadService;
         this.usuarioService = usuarioService;
-        this.movimentacaoRepository = movimentacaoRepository;
+        this.namedParameterJdbcTemplate = namedParameterJdbcTemplate;
     }
 
     public ArtesaoAdminForm carregarFormulario(UUID id) {
@@ -132,7 +134,7 @@ public class AdminMasterService {
         ValidationUtils.validarCampoObrigatorio(id, "id");
 
         Artesao artesao = artesaoRepository.findById(id)
-            .orElseThrow(() -> new IllegalArgumentException(ARTESAO_NAO_ENCONTRADO));
+                .orElseThrow(() -> new IllegalArgumentException(ARTESAO_NAO_ENCONTRADO));
 
         if (artesao.getFotoUrl() != null && !artesao.getFotoUrl().isBlank()) {
             try {
@@ -142,28 +144,35 @@ public class AdminMasterService {
             }
         }
 
-        // delete all movimentacoes belonging to this artesao
-        java.util.List<com.arcotisam.app.model.Movimentacao> movs = movimentacaoRepository.findByArtesaoIdOrderByDataHoraDesc(artesao.getId());
-        for (var mv : movs) {
-            movimentacaoRepository.deleteById(mv.getId());
-        }
+        // remove dependent rows directly to avoid Spring Data JDBC FOR UPDATE behavior on SQLite
+        namedParameterJdbcTemplate.update(
+                "DELETE FROM movimentacoes WHERE artesao_id = :artesaoId",
+                new MapSqlParameterSource().addValue("artesaoId", artesao.getId().toString()));
 
-        // delete all products belonging to this artesao (and their images)
+        // remove product images first, then the rows
         java.util.List<Produto> produtos = produtoRepository.findByArtesaoId(artesao.getId());
         for (Produto p : produtos) {
             if (p.getImagemUrl() != null && !p.getImagemUrl().isBlank()) {
-                try { fileUploadService.removerImagem(p.getImagemUrl()); } catch (Exception ignored) { }
+                try {
+                    fileUploadService.removerImagem(p.getImagemUrl());
+                } catch (Exception ignored) {
+                    // ignore cleanup failures
+                }
             }
-            produtoRepository.deleteById(p.getId());
         }
+        namedParameterJdbcTemplate.update(
+                "DELETE FROM produtos WHERE artesao_id = :artesaoId",
+                new MapSqlParameterSource().addValue("artesaoId", artesao.getId().toString()));
 
-        // delete linked user if exists
         if (artesao.getUsuarioId() != null) {
-            try { usuarioRepository.deleteById(artesao.getUsuarioId()); } catch (Exception ignored) { }
+            namedParameterJdbcTemplate.update(
+                    "DELETE FROM usuarios WHERE id = :usuarioId",
+                    new MapSqlParameterSource().addValue("usuarioId", artesao.getUsuarioId().toString()));
         }
 
-        // finally delete the artesao record
-        artesaoRepository.deleteById(id);
+        namedParameterJdbcTemplate.update(
+                "DELETE FROM artesaos WHERE id = :id",
+                new MapSqlParameterSource().addValue("id", artesao.getId().toString()));
     }
 
     private void criarArtesao(ArtesaoAdminForm form, MultipartFile foto) {
@@ -194,7 +203,17 @@ public class AdminMasterService {
                 true);
 
         usuarioService.salvarNovoUsuario(usuario);
-        artesaoRepository.save(artesao);
+        namedParameterJdbcTemplate.update(
+            "INSERT INTO artesaos (id, nome, descricao, whatsapp, foto_url, usuario_id) " +
+            "VALUES (:id, :nome, :descricao, :whatsapp, :fotoUrl, :usuarioId)",
+            new MapSqlParameterSource()
+                .addValue("id", artesao.getId().toString())
+                .addValue("nome", artesao.getNome())
+                .addValue("descricao", artesao.getDescricao())
+                .addValue("whatsapp", artesao.getWhatsapp())
+                .addValue("fotoUrl", artesao.getFotoUrl())
+                .addValue("usuarioId", artesao.getUsuarioId().toString())
+        );
     }
 
     private void atualizarArtesao(ArtesaoAdminForm form, MultipartFile foto) {
@@ -243,7 +262,17 @@ public class AdminMasterService {
         }
 
         usuarioRepository.save(usuario);
-        artesaoRepository.save(artesao);
+        namedParameterJdbcTemplate.update(
+            "UPDATE artesaos SET nome = :nome, descricao = :descricao, whatsapp = :whatsapp, " +
+            "foto_url = :fotoUrl, usuario_id = :usuarioId WHERE id = :id",
+            new MapSqlParameterSource()
+                .addValue("id", artesao.getId().toString())
+                .addValue("nome", artesao.getNome())
+                .addValue("descricao", artesao.getDescricao())
+                .addValue("whatsapp", artesao.getWhatsapp())
+                .addValue("fotoUrl", artesao.getFotoUrl())
+                .addValue("usuarioId", artesao.getUsuarioId().toString())
+        );
     }
 
     private String salvarFotoSeExistir(MultipartFile foto) {
