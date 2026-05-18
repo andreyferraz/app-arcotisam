@@ -20,6 +20,10 @@
         <div class="hero-actions admin-hero-actions">
           <a href="#cadastro-artesao" class="btn btn-primary">Novo artesão</a>
 
+          <div style="flex-basis:100%; margin-top:8px;">
+            <p class="admin-note" style="margin:6px 0 10px; font-size:0.95rem;">A senha abaixo altera a senha do usuário admin (conta master). Use com cuidado.</p>
+          </div>
+
           <form th:action="@{/admin/senha/alterar}" method="post" class="admin-change-password-form">
             <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
             <label class="sr-only">Nova senha</label>
