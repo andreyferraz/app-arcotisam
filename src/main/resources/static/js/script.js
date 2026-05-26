@@ -332,10 +332,55 @@ function resetProdutoForm() {
   if (cancelBtn) cancelBtn.style.display = 'none';
 }
 
+function initBlogEditor() {
+  const editor = document.getElementById('blogEditor');
+  const output = document.getElementById('conteudoHtml');
+  const form = document.querySelector('.blog-form');
+  const toolbar = document.querySelector('.blog-editor-toolbar');
+
+  if (!editor || !output || !form || !toolbar) {
+    return;
+  }
+
+  const syncContent = () => {
+    output.value = editor.innerHTML.trim();
+  };
+
+  toolbar.addEventListener('mousedown', event => {
+    const button = event.target.closest('button[data-command]');
+    if (!button) return;
+    event.preventDefault();
+  });
+
+  toolbar.addEventListener('click', event => {
+    const button = event.target.closest('button[data-command]');
+    if (!button) return;
+
+    const command = button.getAttribute('data-command');
+    editor.focus();
+
+    if (command === 'createLink') {
+      const url = window.prompt('Informe a URL do link:');
+      if (url) {
+        document.execCommand('createLink', false, url.trim());
+      }
+    } else {
+      document.execCommand(command, false, null);
+    }
+
+    syncContent();
+  });
+
+  editor.addEventListener('input', syncContent);
+  form.addEventListener('submit', syncContent);
+  syncContent();
+}
+
 document.getElementById("currentYear").textContent = new Date().getFullYear();
 
 // Initialize page-specific behaviors for server-rendered pages
 postLoadInit();
+initBlogEditor();
 
 // Marca a aba do menu como ativa com base no path atual
 function markActiveNavLink() {

@@ -76,6 +76,94 @@
       </article>
     </div>
 
+    <div class="container admin-section-header" style="margin-top: 10px;">
+      <div>
+        <span class="eyebrow">Blog</span>
+        <h2>Postagens publicadas</h2>
+      </div>
+    </div>
+
+    <div class="container admin-grid admin-blog-grid">
+      <article class="admin-panel admin-form-panel">
+        <div class="panel-head">
+          <div>
+            <span class="eyebrow">Nova postagem</span>
+            <h2 th:text="${editandoBlogPost ? 'Editar post' : 'Criar post'}">Criar post</h2>
+          </div>
+        </div>
+
+        <form th:action="@{/admin/blog/salvar}" method="post" enctype="multipart/form-data" class="admin-form blog-form">
+          <input type="hidden" name="id" th:value="${blogPostForm.id}">
+          <input type="hidden" name="fotoUrlAtual" th:value="${blogPostForm.fotoUrlAtual}">
+
+          <label>
+            Título da postagem
+            <input type="text" name="titulo" placeholder="Ex.: Feira de Cerâmica 2026" th:value="${blogPostForm.titulo}" required>
+          </label>
+
+          <label>
+            Data da publicação
+            <input type="date" name="dataPublicacao" th:value="${blogPostForm.dataPublicacao != null ? blogPostForm.dataPublicacao : dataPublicacaoPadrao}" required>
+          </label>
+
+          <label class="admin-upload">
+            <span th:text="${editandoBlogPost ? 'Trocar foto da postagem' : 'Foto da postagem'}">Foto da postagem</span>
+            <input type="file" name="foto" accept="image/*" th:required="${!editandoBlogPost}">
+          </label>
+
+          <div class="admin-photo-preview" th:if="${blogPostForm.fotoUrlAtual != null and !#strings.isEmpty(blogPostForm.fotoUrlAtual)}">
+            <img th:src="@{|/uploads/${blogPostForm.fotoUrlAtual}|}" th:alt="${blogPostForm.titulo}">
+          </div>
+
+          <div class="blog-editor-wrap">
+            <div class="blog-editor-toolbar" aria-label="Ferramentas de formatação">
+              <button type="button" data-command="bold"><strong>B</strong></button>
+              <button type="button" data-command="italic"><em>I</em></button>
+              <button type="button" data-command="createLink">Link</button>
+            </div>
+            <div id="blogEditor" class="blog-editor" contenteditable="true" data-placeholder="Escreva a postagem aqui. Você pode formatar com negrito, itálico e links.">
+              <th:block th:if="${blogPostForm.conteudoHtml != null and !#strings.isEmpty(blogPostForm.conteudoHtml)}" th:utext="${blogPostForm.conteudoHtml}"></th:block>
+            </div>
+            <textarea id="conteudoHtml" name="conteudoHtml" class="sr-only" required></textarea>
+          </div>
+
+          <p class="admin-note" th:text="${editandoBlogPost ? 'Atualize o conteúdo e salve para alterar a postagem publicada.' : 'O conteúdo será exibido no Blog com a formatação aplicada no editor.'}">O conteúdo será exibido no Blog com a formatação aplicada no editor.</p>
+
+          <button class="btn btn-primary full" type="submit" th:text="${editandoBlogPost ? 'Salvar alterações' : 'Publicar postagem'}">Publicar postagem</button>
+        </form>
+      </article>
+
+      <article class="admin-panel admin-form-panel">
+        <div class="panel-head">
+          <div>
+            <span class="eyebrow">Lista</span>
+            <h2>Blog recente</h2>
+          </div>
+        </div>
+
+        <div th:if="${#lists.isEmpty(blogPosts)}" class="admin-empty-state">
+          Nenhuma postagem cadastrada ainda.
+        </div>
+
+        <div th:unless="${#lists.isEmpty(blogPosts)}" class="blog-admin-list">
+          <article class="blog-admin-card" th:each="post : ${blogPosts}">
+            <img th:src="@{|/uploads/${post.fotoUrl}|}" th:alt="${post.titulo}">
+            <div>
+              <strong th:text="${post.titulo}">Título</strong>
+              <small th:text="${#temporals.format(post.dataPublicacao, 'dd/MM/yyyy')}">01/01/2026</small>
+              <div class="blog-admin-actions">
+                <a class="btn btn-secondary" th:href="@{/admin(editarPost=${post.id})}">Editar</a>
+                <form th:action="@{/admin/blog/{id}/excluir(id=${post.id})}" method="post">
+                  <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                  <button class="btn btn-danger" type="submit" onclick="return confirm('Deseja excluir esta postagem?');">Excluir</button>
+                </form>
+              </div>
+            </div>
+          </article>
+        </div>
+      </article>
+    </div>
+
     <div class="container">
       <div th:if="${sucesso}" class="admin-alert success" th:text="${sucesso}"></div>
       <div th:if="${erro}" class="admin-alert error" th:text="${erro}"></div>

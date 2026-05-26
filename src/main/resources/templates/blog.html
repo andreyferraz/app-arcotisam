@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="pt-BR">
+
+<head>
+  <title>Blog — Arcotisam</title>
+</head>
+
+<body th:replace="~{layout :: layout('Blog — Arcotisam', ~{::blogContent})}">
+<div th:fragment="blogContent">
+  <section class="page-section active" id="blog" data-section="blog">
+    <div class="container page-header page-header-left" style="text-align: left;">
+      <span class="eyebrow">Blog</span>
+      <h2>Novidades, histórias e registros da ARCOTISAM</h2>
+      <p>
+        Acompanhe as postagens criadas pelo painel master com textos formatados, fotos e datas de publicação.
+      </p>
+    </div>
+
+    <div class="container">
+      <div th:if="${#lists.isEmpty(blogPosts)}" class="admin-empty-state">
+        Ainda não existem postagens publicadas.
+      </div>
+
+      <div th:unless="${#lists.isEmpty(blogPosts)}" class="blog-grid">
+        <article class="blog-card" th:each="post : ${blogPosts}">
+          <div class="blog-card-image">
+            <img th:src="@{|/uploads/${post.fotoUrl}|}" th:alt="${post.titulo}">
+          </div>
+
+          <div class="blog-card-body">
+            <div class="blog-meta" th:text="${#temporals.format(post.dataPublicacao, 'dd/MM/yyyy')}">01/01/2026</div>
+            <h3 th:text="${post.titulo}">Título da postagem</h3>
+            <div class="blog-content" th:utext="${post.conteudoHtml}">Conteúdo da postagem</div>
+          </div>
+        </article>
+      </div>
+    </div>
+  </section>
+</div>
+</body>
+</html>

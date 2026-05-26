@@ -4,6 +4,7 @@ import java.util.Comparator;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -21,6 +22,8 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.arcotisam.app.dto.ArtesaoAdminForm;
 import com.arcotisam.app.dto.ArtesaoDashboardItem;
+import com.arcotisam.app.dto.BlogPostAdminForm;
+import com.arcotisam.app.dto.BlogPostItem;
 import com.arcotisam.app.dto.GaleriaExibicaoItem;
 import com.arcotisam.app.dto.ProdutoRankingItem;
 import com.arcotisam.app.enuns.Role;
@@ -40,10 +43,16 @@ public class AdminMasterService {
     private static final String CAMPO_ARTESAO_ID = "artesaoId";
     private static final String CAMPO_USUARIO_ID = "usuarioId";
     private static final String CAMPO_TITULO = "titulo";
+    private static final String CAMPO_DATA_PUBLICACAO = "dataPublicacao";
+    private static final String CAMPO_DATA_PUBLICACAO_DB = "data_publicacao";
+    private static final String CAMPO_CONTEUDO_HTML = "conteudoHtml";
+    private static final String CAMPO_CONTEUDO_HTML_DB = "conteudo_html";
+    private static final String CAMPO_FOTO_URL = "fotoUrl";
     private static final String CAMPO_CHAVE = "chave";
     private static final String CAMPO_VALOR = "valor";
     private static final String CONFIG_FOTO_ASSOCIACAO = "foto_associacao";
     private static final String ARTESAO_SEM_USUARIO_VINCULADO = "Artesao sem usuario vinculado.";
+    private static final String POSTAGEM_NAO_ENCONTRADA = "Postagem nao encontrada.";
 
     private final ArtesaoRepository artesaoRepository;
     private final UsuarioRepository usuarioRepository;
@@ -144,6 +153,151 @@ public class AdminMasterService {
         }
 
         return galerias;
+    }
+
+    public List<BlogPostItem> listarBlogPosts() {
+        return namedParameterJdbcTemplate.query(
+            "SELECT id, titulo, data_publicacao, foto_url, conteudo_html FROM blog_posts ORDER BY data_publicacao DESC, rowid DESC",
+                new MapSqlParameterSource(),
+                (rs, rowNum) -> new BlogPostItem(
+                        UUID.fromString(rs.getString(CAMPO_ID)),
+                        rs.getString(CAMPO_TITULO),
+                        LocalDate.parse(rs.getString(CAMPO_DATA_PUBLICACAO_DB)),
+                        rs.getString("foto_url"),
+                        rs.getString(CAMPO_CONTEUDO_HTML_DB)));
+    }
+
+    public BlogPostAdminForm carregarBlogPostFormulario(UUID id) {
+        BlogPostAdminForm form = new BlogPostAdminForm();
+
+        if (id == null) {
+            return form;
+        }
+
+        BlogPostItem blogPost = buscarBlogPostPorId(id)
+                .orElseThrow(() -> new IllegalArgumentException(POSTAGEM_NAO_ENCONTRADA));
+
+        form.setId(blogPost.getId());
+        form.setTitulo(blogPost.getTitulo());
+        form.setDataPublicacao(blogPost.getDataPublicacao() != null ? blogPost.getDataPublicacao().toString() : null);
+        form.setFotoUrlAtual(blogPost.getFotoUrl());
+        form.setConteudoHtml(blogPost.getConteudoHtml());
+
+        return form;
+    }
+
+    @Transactional
+    public void salvarBlogPost(String titulo, String dataPublicacao, MultipartFile foto, String conteudoHtml) {
+        persistirNovoBlogPost(titulo, dataPublicacao, foto, conteudoHtml);
+    }
+
+    private void persistirNovoBlogPost(String titulo, String dataPublicacao, MultipartFile foto, String conteudoHtml) {
+        ValidationUtils.validarCampoStringObrigatorio(titulo, CAMPO_TITULO);
+        ValidationUtils.validarCampoStringObrigatorio(dataPublicacao, CAMPO_DATA_PUBLICACAO);
+        ValidationUtils.validarCampoStringObrigatorio(conteudoHtml, CAMPO_CONTEUDO_HTML);
+
+        String conteudoLimpado = conteudoHtml.trim();
+        if (conteudoLimpado.replaceAll("<[^>]*>", "").isBlank()) {
+            throw new IllegalArgumentException("Escreva o conteúdo da postagem.");
+        }
+
+        LocalDate data;
+        try {
+            data = LocalDate.parse(dataPublicacao.trim());
+        } catch (RuntimeException ex) {
+            throw new IllegalArgumentException("Data de publicação inválida.");
+        }
+
+        if (foto == null || foto.isEmpty()) {
+            throw new IllegalArgumentException("Adicione uma foto para a postagem.");
+        }
+
+        String fotoUrl = fileUploadService.salvarImagem(foto);
+
+        try {
+            namedParameterJdbcTemplate.update(
+                    "INSERT INTO blog_posts (id, titulo, data_publicacao, foto_url, conteudo_html) " +
+                            "VALUES (:id, :titulo, :dataPublicacao, :fotoUrl, :conteudoHtml)",
+                    new MapSqlParameterSource()
+                            .addValue(CAMPO_ID, UUID.randomUUID().toString())
+                            .addValue(CAMPO_TITULO, titulo.trim())
+                            .addValue(CAMPO_DATA_PUBLICACAO, data.toString())
+                            .addValue(CAMPO_FOTO_URL, fotoUrl)
+                            .addValue(CAMPO_CONTEUDO_HTML, conteudoLimpado)
+            );
+        } catch (RuntimeException ex) {
+            removerImagemIgnorandoFalhas(fotoUrl);
+            throw ex;
+        }
+    }
+
+    @Transactional
+    public void salvarBlogPost(UUID id, String titulo, String dataPublicacao, MultipartFile foto, String conteudoHtml, String fotoUrlAtual) {
+        if (id == null) {
+            persistirNovoBlogPost(titulo, dataPublicacao, foto, conteudoHtml);
+            return;
+        }
+
+        ValidationUtils.validarCampoStringObrigatorio(titulo, CAMPO_TITULO);
+        ValidationUtils.validarCampoStringObrigatorio(dataPublicacao, CAMPO_DATA_PUBLICACAO);
+        ValidationUtils.validarCampoStringObrigatorio(conteudoHtml, CAMPO_CONTEUDO_HTML);
+
+        BlogPostItem existente = buscarBlogPostPorId(id)
+            .orElseThrow(() -> new IllegalArgumentException(POSTAGEM_NAO_ENCONTRADA));
+
+        String conteudoLimpado = conteudoHtml.trim();
+        if (conteudoLimpado.replaceAll("<[^>]*>", "").isBlank()) {
+            throw new IllegalArgumentException("Escreva o conteúdo da postagem.");
+        }
+
+        LocalDate data;
+        try {
+            data = LocalDate.parse(dataPublicacao.trim());
+        } catch (RuntimeException ex) {
+            throw new IllegalArgumentException("Data de publicação inválida.");
+        }
+
+        String fotoUrl = existente.getFotoUrl();
+        boolean novaFotoEnviada = foto != null && !foto.isEmpty();
+        if (novaFotoEnviada) {
+            fotoUrl = fileUploadService.salvarImagem(foto);
+        }
+
+        try {
+            namedParameterJdbcTemplate.update(
+                    "UPDATE blog_posts SET titulo = :titulo, data_publicacao = :dataPublicacao, foto_url = :fotoUrl, conteudo_html = :conteudoHtml WHERE id = :id",
+                    new MapSqlParameterSource()
+                            .addValue(CAMPO_ID, id.toString())
+                            .addValue(CAMPO_TITULO, titulo.trim())
+                            .addValue(CAMPO_DATA_PUBLICACAO, data.toString())
+                            .addValue(CAMPO_FOTO_URL, fotoUrl)
+                            .addValue(CAMPO_CONTEUDO_HTML, conteudoLimpado)
+            );
+
+            if (novaFotoEnviada && fotoUrlAtual != null && !fotoUrlAtual.isBlank() && !fotoUrlAtual.equals(fotoUrl)) {
+                removerImagemIgnorandoFalhas(fotoUrlAtual);
+            }
+        } catch (RuntimeException ex) {
+            if (novaFotoEnviada && fotoUrl != null && !fotoUrl.equals(existente.getFotoUrl())) {
+                removerImagemIgnorandoFalhas(fotoUrl);
+            }
+            throw ex;
+        }
+    }
+
+    @Transactional
+    public void excluirBlogPost(UUID id) {
+        ValidationUtils.validarCampoObrigatorio(id, CAMPO_ID);
+
+        BlogPostItem existente = buscarBlogPostPorId(id)
+            .orElseThrow(() -> new IllegalArgumentException(POSTAGEM_NAO_ENCONTRADA));
+
+        namedParameterJdbcTemplate.update(
+                "DELETE FROM blog_posts WHERE id = :id",
+                new MapSqlParameterSource().addValue(CAMPO_ID, id.toString())
+        );
+
+        removerImagemIgnorandoFalhas(existente.getFotoUrl());
     }
 
     public String obterFotoAssociacaoUrl() {
@@ -329,7 +483,7 @@ public class AdminMasterService {
                 .addValue("nome", artesao.getNome())
                 .addValue("descricao", artesao.getDescricao())
                 .addValue("whatsapp", artesao.getWhatsapp())
-                .addValue("fotoUrl", artesao.getFotoUrl())
+                .addValue(CAMPO_FOTO_URL, artesao.getFotoUrl())
                 .addValue(CAMPO_USUARIO_ID, requireId(artesao.getUsuarioId(), ARTESAO_SEM_USUARIO_VINCULADO))
         );
     }
@@ -388,7 +542,7 @@ public class AdminMasterService {
                 .addValue("nome", artesao.getNome())
                 .addValue("descricao", artesao.getDescricao())
                 .addValue("whatsapp", artesao.getWhatsapp())
-                .addValue("fotoUrl", artesao.getFotoUrl())
+                .addValue(CAMPO_FOTO_URL, artesao.getFotoUrl())
                 .addValue(CAMPO_USUARIO_ID, requireId(artesao.getUsuarioId(), ARTESAO_SEM_USUARIO_VINCULADO))
         );
     }
@@ -456,6 +610,24 @@ public class AdminMasterService {
         } catch (Exception ignored) {
             // ignore cleanup failures
         }
+    }
+
+    private Optional<BlogPostItem> buscarBlogPostPorId(UUID id) {
+        List<BlogPostItem> posts = namedParameterJdbcTemplate.query(
+                "SELECT id, titulo, data_publicacao, foto_url, conteudo_html FROM blog_posts WHERE id = :id",
+                new MapSqlParameterSource().addValue(CAMPO_ID, id.toString()),
+                (rs, rowNum) -> new BlogPostItem(
+                        UUID.fromString(rs.getString(CAMPO_ID)),
+                        rs.getString(CAMPO_TITULO),
+                        LocalDate.parse(rs.getString(CAMPO_DATA_PUBLICACAO_DB)),
+                        rs.getString("foto_url"),
+                        rs.getString(CAMPO_CONTEUDO_HTML_DB)));
+
+        if (posts.isEmpty()) {
+            return Optional.empty();
+        }
+
+        return Optional.of(posts.get(0));
     }
 
     private Optional<String> buscarConfiguracao(String chave) {

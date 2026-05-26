@@ -39,6 +39,7 @@ public class SecurityConfig {
                         "/index.html",
                         "/home",
                         "/sobre",
+                        "/blog",
                         "/loja",
                         "/associados",
                         "/contato",

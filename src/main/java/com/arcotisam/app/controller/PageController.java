@@ -47,6 +47,12 @@ public class PageController {
         return "sobre";
     }
 
+    @GetMapping("/blog")
+    public String blog(Model model) {
+        model.addAttribute("blogPosts", adminMasterService.listarBlogPosts());
+        return "blog";
+    }
+
     @GetMapping("/loja")
     public String loja(@RequestParam(value = "artesaoId", required = false) UUID artesaoId, Model model) {
         List<Produto> produtos;

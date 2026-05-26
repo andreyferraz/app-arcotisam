@@ -1354,6 +1354,144 @@ p {
   aspect-ratio: 16 / 10;
 }
 
+/* Blog */
+.admin-blog-grid {
+  align-items: start;
+}
+
+.blog-editor-wrap {
+  display: grid;
+  gap: 12px;
+}
+
+.blog-editor-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.blog-editor-toolbar button {
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid rgba(94, 137, 144, 0.22);
+  border-radius: 12px;
+  background: var(--color-sand);
+  color: var(--color-petrol);
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.blog-editor {
+  min-height: 220px;
+  padding: 18px;
+  border: 1px solid rgba(94, 137, 144, 0.28);
+  border-radius: 18px;
+  background: var(--color-white);
+  color: var(--color-petrol);
+  outline: none;
+}
+
+.blog-editor:empty:before {
+  content: attr(data-placeholder);
+  color: rgba(106, 116, 118, 0.76);
+}
+
+.blog-grid {
+  display: grid;
+  gap: 24px;
+}
+
+.blog-card {
+  overflow: hidden;
+  background: var(--color-white);
+  border: 1px solid rgba(94, 137, 144, 0.16);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+}
+
+.blog-card-image {
+  aspect-ratio: 16 / 9;
+  background: rgba(94, 137, 144, 0.08);
+}
+
+.blog-card-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.blog-card-body {
+  padding: 24px;
+}
+
+.blog-meta {
+  display: inline-flex;
+  margin-bottom: 10px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(94, 137, 144, 0.14);
+  color: var(--color-ocean);
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.blog-content {
+  margin-top: 14px;
+  color: var(--color-muted);
+}
+
+.blog-content p + p,
+.blog-content h1 + p,
+.blog-content h2 + p,
+.blog-content h3 + p {
+  margin-top: 12px;
+}
+
+.blog-content a {
+  color: var(--color-terracotta);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.blog-admin-list {
+  display: grid;
+  gap: 14px;
+}
+
+.blog-admin-card {
+  display: grid;
+  grid-template-columns: 84px 1fr;
+  gap: 14px;
+  align-items: center;
+  padding: 12px;
+  border-radius: 18px;
+  background: rgba(244, 242, 236, 0.7);
+}
+
+.blog-admin-card img {
+  width: 84px;
+  height: 64px;
+  object-fit: cover;
+  border-radius: 14px;
+}
+
+.blog-admin-card small {
+  display: block;
+  margin-top: 4px;
+  color: var(--color-muted);
+}
+
+.blog-admin-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.blog-admin-actions form {
+  display: inline-flex;
+}
+
 /* Contato */
 .contact-layout {
   display: grid;

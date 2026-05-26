@@ -45,6 +45,15 @@ CREATE TABLE IF NOT EXISTS configuracoes_site (
     valor TEXT
 );
 
+-- Postagens exibidas na aba Blog
+CREATE TABLE IF NOT EXISTS blog_posts (
+    id TEXT PRIMARY KEY,
+    titulo TEXT NOT NULL,
+    data_publicacao TEXT NOT NULL,
+    foto_url TEXT NOT NULL,
+    conteudo_html TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS galeria_fotos (
     id TEXT PRIMARY KEY,
     galeria_id TEXT NOT NULL,

@@ -1,6 +1,7 @@
 package com.arcotisam.app.controller;
 
 import java.util.List;
+import java.time.LocalDate;
 import java.util.UUID;
 
 import org.springframework.stereotype.Controller;
@@ -16,6 +17,8 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import com.arcotisam.app.dto.ArtesaoAdminForm;
 import com.arcotisam.app.dto.ArtesaoDashboardItem;
+import com.arcotisam.app.dto.BlogPostAdminForm;
+import com.arcotisam.app.dto.BlogPostItem;
 import com.arcotisam.app.dto.GaleriaExibicaoItem;
 import com.arcotisam.app.dto.ProdutoRankingItem;
 import com.arcotisam.app.service.AdminMasterService;
@@ -39,17 +42,25 @@ public class AdminController {
     }
 
     @GetMapping
-    public String painel(@RequestParam(name = "editar", required = false) UUID editar, Model model) {
+    public String painel(@RequestParam(name = "editar", required = false) UUID editar,
+                         @RequestParam(name = "editarPost", required = false) UUID editarPost,
+                         Model model) {
         ArtesaoAdminForm form = adminMasterService.carregarFormulario(editar);
+        BlogPostAdminForm blogPostForm = adminMasterService.carregarBlogPostFormulario(editarPost);
         List<ArtesaoDashboardItem> artesaos = adminMasterService.listarArtesaos();
         List<ProdutoRankingItem> produtosMaisVendidos = adminMasterService.listarProdutosMaisVendidos(5);
         List<GaleriaExibicaoItem> galerias = adminMasterService.listarGalerias();
+        List<BlogPostItem> blogPosts = adminMasterService.listarBlogPosts();
         String fotoAssociacaoUrl = resolverFotoAssociacaoUrl();
 
         model.addAttribute("artesaoForm", form);
         model.addAttribute("artesaos", artesaos);
         model.addAttribute("produtosMaisVendidos", produtosMaisVendidos);
         model.addAttribute("galerias", galerias);
+        model.addAttribute("blogPosts", blogPosts);
+        model.addAttribute("blogPostForm", blogPostForm);
+        model.addAttribute("editandoBlogPost", editarPost != null);
+        model.addAttribute("dataPublicacaoPadrao", LocalDate.now().toString());
         model.addAttribute("fotoAssociacaoUrl", fotoAssociacaoUrl);
         model.addAttribute("labelsProdutosMaisVendidos", produtosMaisVendidos.stream().map(ProdutoRankingItem::getNome).toList());
         model.addAttribute("valoresProdutosMaisVendidos", produtosMaisVendidos.stream().map(ProdutoRankingItem::getQuantidadeVendida).toList());
@@ -114,6 +125,40 @@ public class AdminController {
         try {
             adminMasterService.salvarGaleria(titulo, fotos);
             redirectAttributes.addFlashAttribute(SUCESSO, "Galeria cadastrada com sucesso.");
+        } catch (RuntimeException ex) {
+            redirectAttributes.addFlashAttribute("erro", ex.getMessage());
+        }
+
+        return ADMIN_REDIRECT;
+    }
+
+    @PostMapping("/blog/salvar")
+    public String salvarBlogPost(@RequestParam(name = "titulo") String titulo,
+                                 @RequestParam(name = "dataPublicacao") String dataPublicacao,
+                                 @RequestParam(name = "foto") MultipartFile foto,
+                                 @RequestParam(name = "conteudoHtml") String conteudoHtml,
+                                 @RequestParam(name = "id", required = false) UUID id,
+                                 @RequestParam(name = "fotoUrlAtual", required = false) String fotoUrlAtual,
+                                 RedirectAttributes redirectAttributes) {
+        try {
+            boolean editando = id != null;
+            adminMasterService.salvarBlogPost(id, titulo, dataPublicacao, foto, conteudoHtml, fotoUrlAtual);
+            redirectAttributes.addFlashAttribute(SUCESSO, editando ? "Postagem atualizada com sucesso." : "Postagem publicada com sucesso.");
+        } catch (RuntimeException ex) {
+            redirectAttributes.addFlashAttribute("erro", ex.getMessage());
+            if (id != null) {
+                return "redirect:/admin?editarPost=" + id;
+            }
+        }
+
+        return ADMIN_REDIRECT;
+    }
+
+    @PostMapping("/blog/{id}/excluir")
+    public String excluirBlogPost(@PathVariable UUID id, RedirectAttributes redirectAttributes) {
+        try {
+            adminMasterService.excluirBlogPost(id);
+            redirectAttributes.addFlashAttribute(SUCESSO, "Postagem excluída com sucesso.");
         } catch (RuntimeException ex) {
             redirectAttributes.addFlashAttribute("erro", ex.getMessage());
         }
