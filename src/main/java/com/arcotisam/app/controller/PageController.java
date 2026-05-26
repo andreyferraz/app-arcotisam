@@ -37,6 +37,7 @@ public class PageController {
     public String home(Model model) {
         model.addAttribute("ultimosProdutos", produtoService.listarUltimosCadastrados(3));
         model.addAttribute("artesaosAleatorios", listarArtesaosAleatorios(3));
+        model.addAttribute("fotoAssociacaoUrl", resolverFotoAssociacaoUrl());
         return "index";
     }
 
@@ -103,5 +104,13 @@ public class PageController {
         List<Artesao> embaralhados = new ArrayList<>(artesaos);
         Collections.shuffle(embaralhados, ThreadLocalRandom.current());
         return embaralhados.subList(0, Math.min(limite, embaralhados.size()));
+    }
+
+    private String resolverFotoAssociacaoUrl() {
+        String fotoAssociacao = adminMasterService.obterFotoAssociacaoUrl();
+        if (fotoAssociacao == null || fotoAssociacao.isBlank()) {
+            return "/img/foto_associacao.webp";
+        }
+        return "/uploads/" + fotoAssociacao;
     }
 }

@@ -44,11 +44,13 @@ public class AdminController {
         List<ArtesaoDashboardItem> artesaos = adminMasterService.listarArtesaos();
         List<ProdutoRankingItem> produtosMaisVendidos = adminMasterService.listarProdutosMaisVendidos(5);
         List<GaleriaExibicaoItem> galerias = adminMasterService.listarGalerias();
+        String fotoAssociacaoUrl = resolverFotoAssociacaoUrl();
 
         model.addAttribute("artesaoForm", form);
         model.addAttribute("artesaos", artesaos);
         model.addAttribute("produtosMaisVendidos", produtosMaisVendidos);
         model.addAttribute("galerias", galerias);
+        model.addAttribute("fotoAssociacaoUrl", fotoAssociacaoUrl);
         model.addAttribute("labelsProdutosMaisVendidos", produtosMaisVendidos.stream().map(ProdutoRankingItem::getNome).toList());
         model.addAttribute("valoresProdutosMaisVendidos", produtosMaisVendidos.stream().map(ProdutoRankingItem::getQuantidadeVendida).toList());
         model.addAttribute("maxQuantidadeVendida", produtosMaisVendidos.stream().mapToInt(item -> item.getQuantidadeVendida() == null ? 0 : item.getQuantidadeVendida()).max().orElse(0));
@@ -75,6 +77,19 @@ public class AdminController {
                 return "redirect:/admin?editar=" + form.getId();
             }
             return ADMIN_REDIRECT;
+        }
+
+        return ADMIN_REDIRECT;
+    }
+
+    @PostMapping("/site/foto-associacao")
+    public String salvarFotoAssociacao(@RequestParam(name = "fotoAssociacao") MultipartFile fotoAssociacao,
+                                        RedirectAttributes redirectAttributes) {
+        try {
+            adminMasterService.salvarFotoAssociacao(fotoAssociacao);
+            redirectAttributes.addFlashAttribute(SUCESSO, "Foto da associação atualizada com sucesso.");
+        } catch (RuntimeException ex) {
+            redirectAttributes.addFlashAttribute("erro", ex.getMessage());
         }
 
         return ADMIN_REDIRECT;
@@ -134,5 +149,13 @@ public class AdminController {
 
     private String adminRedirect() {
         return ADMIN_REDIRECT;
+    }
+
+    private String resolverFotoAssociacaoUrl() {
+        String fotoAssociacao = adminMasterService.obterFotoAssociacaoUrl();
+        if (fotoAssociacao == null || fotoAssociacao.isBlank()) {
+            return "/img/foto_associacao.webp";
+        }
+        return "/uploads/" + fotoAssociacao;
     }
 }

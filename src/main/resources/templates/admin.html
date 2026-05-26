@@ -50,6 +50,32 @@
       </div>
     </div>
 
+    <div class="container admin-grid" style="margin-top: 0;">
+      <article class="admin-panel admin-form-panel">
+        <div class="panel-head">
+          <div>
+            <span class="eyebrow">Home</span>
+            <h2>Foto da associação</h2>
+          </div>
+        </div>
+
+        <form th:action="@{/admin/site/foto-associacao}" method="post" enctype="multipart/form-data" class="admin-form">
+          <label class="admin-upload">
+            Nova foto da associação
+            <input type="file" name="fotoAssociacao" accept="image/*" required>
+          </label>
+
+          <p class="admin-note">A imagem é usada no hero da home. Envie uma nova foto sempre que quiser atualizar essa vitrine.</p>
+
+          <div class="admin-photo-preview" th:if="${fotoAssociacaoUrl != null and !#strings.isEmpty(fotoAssociacaoUrl)}">
+            <img th:src="${fotoAssociacaoUrl}" alt="Foto atual da associação">
+          </div>
+
+          <button class="btn btn-primary full" type="submit">Atualizar foto</button>
+        </form>
+      </article>
+    </div>
+
     <div class="container">
       <div th:if="${sucesso}" class="admin-alert success" th:text="${sucesso}"></div>
       <div th:if="${erro}" class="admin-alert error" th:text="${erro}"></div>

@@ -40,6 +40,9 @@ public class AdminMasterService {
     private static final String CAMPO_ARTESAO_ID = "artesaoId";
     private static final String CAMPO_USUARIO_ID = "usuarioId";
     private static final String CAMPO_TITULO = "titulo";
+    private static final String CAMPO_CHAVE = "chave";
+    private static final String CAMPO_VALOR = "valor";
+    private static final String CONFIG_FOTO_ASSOCIACAO = "foto_associacao";
     private static final String ARTESAO_SEM_USUARIO_VINCULADO = "Artesao sem usuario vinculado.";
 
     private final ArtesaoRepository artesaoRepository;
@@ -141,6 +144,35 @@ public class AdminMasterService {
         }
 
         return galerias;
+    }
+
+    public String obterFotoAssociacaoUrl() {
+        return buscarConfiguracao(CONFIG_FOTO_ASSOCIACAO).orElse(null);
+    }
+
+    @Transactional
+    public void salvarFotoAssociacao(MultipartFile foto) {
+        ValidationUtils.validarCampoObrigatorio(foto, "foto");
+
+        String fotoAtual = buscarConfiguracao(CONFIG_FOTO_ASSOCIACAO).orElse(null);
+        String novaFoto = fileUploadService.salvarImagem(foto);
+
+        try {
+            namedParameterJdbcTemplate.update(
+                    "INSERT INTO configuracoes_site (chave, valor) VALUES (:chave, :valor) " +
+                            "ON CONFLICT(chave) DO UPDATE SET valor = excluded.valor",
+                    new MapSqlParameterSource()
+                            .addValue(CAMPO_CHAVE, CONFIG_FOTO_ASSOCIACAO)
+                            .addValue(CAMPO_VALOR, novaFoto)
+            );
+
+            if (fotoAtual != null && !fotoAtual.isBlank() && !fotoAtual.equals(novaFoto)) {
+                removerImagemIgnorandoFalhas(fotoAtual);
+            }
+        } catch (RuntimeException ex) {
+            removerImagemIgnorandoFalhas(novaFoto);
+            throw ex;
+        }
     }
 
     @Transactional
@@ -412,5 +444,28 @@ public class AdminMasterService {
         }
         String limpado = valor.trim();
         return limpado.isEmpty() ? null : limpado;
+    }
+
+    private void removerImagemIgnorandoFalhas(String nomeArquivo) {
+        if (nomeArquivo == null || nomeArquivo.isBlank()) {
+            return;
+        }
+
+        try {
+            fileUploadService.removerImagem(nomeArquivo);
+        } catch (Exception ignored) {
+            // ignore cleanup failures
+        }
+    }
+
+    private Optional<String> buscarConfiguracao(String chave) {
+        List<String> valores = namedParameterJdbcTemplate.query(
+                "SELECT valor FROM configuracoes_site WHERE chave = :chave",
+                new MapSqlParameterSource().addValue(CAMPO_CHAVE, chave),
+                (rs, rowNum) -> rs.getString(CAMPO_VALOR));
+        if (valores.isEmpty()) {
+            return Optional.empty();
+        }
+        return Optional.ofNullable(valores.get(0));
     }
 }

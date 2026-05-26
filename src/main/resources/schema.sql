@@ -39,6 +39,12 @@ CREATE TABLE IF NOT EXISTS galerias (
     titulo TEXT NOT NULL
 );
 
+-- Configurações globais do site
+CREATE TABLE IF NOT EXISTS configuracoes_site (
+    chave TEXT PRIMARY KEY,
+    valor TEXT
+);
+
 CREATE TABLE IF NOT EXISTS galeria_fotos (
     id TEXT PRIMARY KEY,
     galeria_id TEXT NOT NULL,
