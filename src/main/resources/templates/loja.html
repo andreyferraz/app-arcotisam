@@ -45,7 +45,7 @@
               <strong class="price" th:text="${'R$ ' + #numbers.formatDecimal(p.preco, 1, 'POINT', 2, 'COMMA')}">
                 R$0,00
               </strong>
-              <button type="button" class="btn btn-primary buy-btn" th:attr="data-id=${p.id}">Comprar</button>
+              <a class="btn btn-primary buy-btn" th:href="@{/comprar/{id}(id=${p.id})}">Comprar</a>
             </div>
           </div>
         </div>

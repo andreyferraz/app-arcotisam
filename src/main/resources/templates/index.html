@@ -33,6 +33,42 @@
       </div>
     </div>
 
+    <section class="container page-section active" id="ultimos-produtos">
+      <div class="page-header" style="margin-top: 0; text-align: left;">
+        <span class="eyebrow">Novidades da loja</span>
+        <h2>Últimos produtos cadastrados</h2>
+        <p>Conheça as peças mais recentes publicadas pelos artesãos da ARCOTISAM.</p>
+      </div>
+
+      <div th:if="${#lists.isEmpty(ultimosProdutos)}" class="admin-empty-state">
+        Ainda não existem produtos cadastrados.
+      </div>
+
+      <div th:unless="${#lists.isEmpty(ultimosProdutos)}" class="product-grid">
+        <article class="product-card" th:each="p : ${ultimosProdutos}">
+          <div class="product-image">
+            <img th:if="${p.imagemUrl != null}" th:src="@{|/uploads/${p.imagemUrl}|}" th:alt="${p.nome}"
+              class="product-photo" />
+            <div th:if="${p.imagemUrl == null}">🧶</div>
+          </div>
+          <div class="product-body">
+            <h3 class="product-title" th:text="${p.nome}">Produto</h3>
+            <p class="product-desc" th:text="${p.descricao}">Descrição</p>
+            <div class="product-footer">
+              <strong class="price" th:text="${'R$ ' + #numbers.formatDecimal(p.preco, 1, 'POINT', 2, 'COMMA')}">
+                R$0,00
+              </strong>
+              <a class="btn btn-primary buy-btn" th:href="@{/comprar/{id}(id=${p.id})}">Comprar</a>
+            </div>
+          </div>
+        </article>
+      </div>
+
+      <div class="hero-actions" style="margin-top: 28px; justify-content: center;">
+        <a th:href="@{/loja}" class="btn btn-secondary">Ver todos os produtos</a>
+      </div>
+    </section>
+
     <div class="container feature-grid">
       <article class="feature-card">
         <span class="feature-icon">☀️</span>

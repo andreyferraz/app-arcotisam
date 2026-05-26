@@ -2,13 +2,14 @@ package com.arcotisam.app.controller;
 
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import com.arcotisam.app.model.Artesao;
 import com.arcotisam.app.model.Produto;
@@ -28,6 +29,7 @@ public class PageController {
 
     @GetMapping({"/", "/home"})
     public String home(Model model) {
+        model.addAttribute("ultimosProdutos", produtoService.listarUltimosCadastrados(3));
         return "index";
     }
 
@@ -46,7 +48,7 @@ public class PageController {
         }
 
         List<Artesao> artesaos = StreamSupport.stream(artesaoRepository.findAll().spliterator(), false)
-                .collect(Collectors.toList());
+            .toList();
 
         model.addAttribute("produtos", produtos);
         model.addAttribute("artesaos", artesaos);
@@ -65,9 +67,15 @@ public class PageController {
         return "contato";
     }
 
-    @GetMapping("/carrinho")
-    public String carrinho(Model model) {
-        return "carrinho";
+    @GetMapping("/comprar/{produtoId}")
+    public String comprar(@PathVariable UUID produtoId, RedirectAttributes redirectAttributes) {
+        try {
+            String linkWhatsApp = produtoService.registrarCliqueEObterLinkWhatsApp(produtoId);
+            return "redirect:" + linkWhatsApp;
+        } catch (RuntimeException ex) {
+            redirectAttributes.addFlashAttribute("erro", ex.getMessage());
+            return "redirect:/loja";
+        }
     }
 
     @GetMapping("/login")

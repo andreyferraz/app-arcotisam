@@ -42,7 +42,7 @@ public class SecurityConfig {
                         "/loja",
                         "/associados",
                         "/contato",
-                        "/carrinho",
+                        "/comprar/**",
                         "/css/**",
                         "/js/**",
                         "/img/**",

@@ -1,10 +1,12 @@
 package com.arcotisam.app.service;
 
 import java.math.BigDecimal;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.util.Objects;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -20,6 +22,17 @@ import com.arcotisam.app.utils.ValidationUtils;
 
 @Service
 public class ProdutoService {
+
+    private static final String CAMPO_ID = "id";
+    private static final String CAMPO_NOME = "nome";
+    private static final String CAMPO_DESCRICAO = "descricao";
+    private static final String CAMPO_PRECO = "preco";
+    private static final String CAMPO_IMAGEM_URL = "imagem_url";
+    private static final String CAMPO_ATIVO = "ativo";
+    private static final String CAMPO_QUANTIDADE_VENDIDA_DB = "quantidade_vendida";
+    private static final String CAMPO_ARTESAO_ID = "artesaoId";
+    private static final String CAMPO_QUANTIDADE_VENDIDA = "quantidadeVendida";
+    private static final String MENSAGEM_ID_NAO_NULO = "Produto id nao pode ser nulo";
 
     private final ProdutoRepository produtoRepository;
     private final ArtesaoRepository artesaoRepository;
@@ -39,19 +52,45 @@ public class ProdutoService {
     }
 
     public java.util.List<Produto> listarPorArtesao(UUID artesaoId) {
-        ValidationUtils.validarCampoObrigatorio(artesaoId, "artesaoId");
+        ValidationUtils.validarCampoObrigatorio(artesaoId, CAMPO_ARTESAO_ID);
         return produtoRepository.findByArtesaoId(artesaoId);
     }
 
     public List<Produto> listarTodos() {
         return StreamSupport.stream(produtoRepository.findAll().spliterator(), false)
-                .collect(Collectors.toList());
+                .toList();
+    }
+
+    public List<Produto> listarUltimosCadastrados(int limite) {
+        int limiteSeguro = Math.max(1, limite);
+
+        return namedParameterJdbcTemplate.query(
+                "SELECT id, nome, descricao, preco, imagem_url, ativo, quantidade_vendida, artesao_id " +
+                "FROM produtos ORDER BY rowid DESC LIMIT :limite",
+                new MapSqlParameterSource().addValue("limite", limiteSeguro),
+                (rs, rowNum) -> {
+                    Integer quantidadeVendida = rs.getInt(CAMPO_QUANTIDADE_VENDIDA_DB);
+                    if (rs.wasNull()) {
+                        quantidadeVendida = null;
+                    }
+
+                    return new Produto(
+                            UUID.fromString(rs.getString("id")),
+                            rs.getString(CAMPO_NOME),
+                            rs.getString(CAMPO_DESCRICAO),
+                            rs.getBigDecimal(CAMPO_PRECO),
+                            rs.getString(CAMPO_IMAGEM_URL),
+                            rs.getInt(CAMPO_ATIVO) != 0,
+                            quantidadeVendida,
+                            UUID.fromString(rs.getString(CAMPO_ARTESAO_ID)),
+                            false);
+                });
     }
 
     @Transactional
     public Produto criarProduto(String nome, String descricao, BigDecimal preco, UUID artesaoId, MultipartFile imagem) {
         ValidationUtils.validarCampoStringObrigatorio(nome, "nome");
-        ValidationUtils.validarCampoObrigatorio(artesaoId, "artesaoId");
+        ValidationUtils.validarCampoObrigatorio(artesaoId, CAMPO_ARTESAO_ID);
 
         if (artesaoRepository.findById(artesaoId).isEmpty()) {
             throw new IllegalArgumentException("Artesao nao encontrado: " + artesaoId);
@@ -68,14 +107,14 @@ public class ProdutoService {
             "INSERT INTO produtos (id, nome, descricao, preco, imagem_url, ativo, quantidade_vendida, artesao_id) " +
             "VALUES (:id, :nome, :descricao, :preco, :imagemUrl, :ativo, :quantidadeVendida, :artesaoId)",
             new MapSqlParameterSource()
-                .addValue("id", novo.getId().toString())
-                .addValue("nome", novo.getNome())
-                .addValue("descricao", novo.getDescricao())
-                .addValue("preco", novo.getPreco())
+                .addValue(CAMPO_ID, Objects.requireNonNull(novo.getId(), MENSAGEM_ID_NAO_NULO).toString())
+                .addValue(CAMPO_NOME, novo.getNome())
+                .addValue(CAMPO_DESCRICAO, novo.getDescricao())
+                .addValue(CAMPO_PRECO, novo.getPreco())
                 .addValue("imagemUrl", novo.getImagemUrl())
-                .addValue("ativo", Boolean.TRUE.equals(novo.getAtivo()) ? 1 : 0)
-                .addValue("quantidadeVendida", novo.getQuantidadeVendida())
-                .addValue("artesaoId", novo.getArtesaoId().toString())
+                .addValue(CAMPO_ATIVO, Boolean.TRUE.equals(novo.getAtivo()) ? 1 : 0)
+                .addValue(CAMPO_QUANTIDADE_VENDIDA, novo.getQuantidadeVendida())
+                .addValue(CAMPO_ARTESAO_ID, novo.getArtesaoId().toString())
         );
 
         return novo;
@@ -105,14 +144,14 @@ public class ProdutoService {
             "imagem_url = :imagemUrl, ativo = :ativo, quantidade_vendida = :quantidadeVendida, artesao_id = :artesaoId " +
             "WHERE id = :id",
             new MapSqlParameterSource()
-                .addValue("id", existente.getId().toString())
+                .addValue(CAMPO_ID, Objects.requireNonNull(existente.getId(), MENSAGEM_ID_NAO_NULO).toString())
                 .addValue("nome", existente.getNome())
-                .addValue("descricao", existente.getDescricao())
-                .addValue("preco", existente.getPreco())
+                .addValue(CAMPO_DESCRICAO, existente.getDescricao())
+                .addValue(CAMPO_PRECO, existente.getPreco())
                 .addValue("imagemUrl", existente.getImagemUrl())
-                .addValue("ativo", Boolean.TRUE.equals(existente.getAtivo()) ? 1 : 0)
-                .addValue("quantidadeVendida", existente.getQuantidadeVendida())
-                .addValue("artesaoId", existente.getArtesaoId().toString())
+                .addValue(CAMPO_ATIVO, Boolean.TRUE.equals(existente.getAtivo()) ? 1 : 0)
+                .addValue(CAMPO_QUANTIDADE_VENDIDA, existente.getQuantidadeVendida())
+                .addValue(CAMPO_ARTESAO_ID, existente.getArtesaoId().toString())
         );
 
         return existente;
@@ -130,7 +169,57 @@ public class ProdutoService {
         }
         namedParameterJdbcTemplate.update(
             "DELETE FROM produtos WHERE id = :id",
-            new MapSqlParameterSource().addValue("id", id.toString()));
+            new MapSqlParameterSource().addValue(CAMPO_ID, id.toString()));
+    }
+
+    @Transactional
+    public String registrarCliqueEObterLinkWhatsApp(UUID produtoId) {
+        ValidationUtils.validarCampoObrigatorio(produtoId, "produtoId");
+
+        Produto produto = produtoRepository.findById(produtoId)
+                .orElseThrow(() -> new IllegalArgumentException("Produto nao encontrado."));
+
+        if (produto.getArtesaoId() == null) {
+            throw new IllegalArgumentException("Produto sem artesao vinculado.");
+        }
+
+        var artesao = artesaoRepository.findById(produto.getArtesaoId())
+                .orElseThrow(() -> new IllegalArgumentException("Artesao nao encontrado."));
+
+        String whatsapp = normalizarWhatsapp(artesao.getWhatsapp());
+        if (whatsapp == null) {
+            throw new IllegalArgumentException("Artesao sem WhatsApp cadastrado.");
+        }
+
+        int novaQuantidade = Optional.ofNullable(produto.getQuantidadeVendida()).orElse(0) + 1;
+        namedParameterJdbcTemplate.update(
+                "UPDATE produtos SET quantidade_vendida = :quantidadeVendida WHERE id = :id",
+                new MapSqlParameterSource()
+            .addValue(CAMPO_ID, Objects.requireNonNull(produto.getId(), MENSAGEM_ID_NAO_NULO).toString())
+                .addValue(CAMPO_QUANTIDADE_VENDIDA, novaQuantidade));
+
+        String mensagem = String.format(
+                "Olá! Tenho interesse no produto %s publicado na ARCOTISAM.",
+                produto.getNome());
+
+        return "https://wa.me/" + whatsapp + "?text=" + URLEncoder.encode(mensagem, StandardCharsets.UTF_8);
+    }
+
+    private String normalizarWhatsapp(String whatsapp) {
+        if (whatsapp == null) {
+            return null;
+        }
+
+        String numeros = whatsapp.trim().replaceAll("\\D", "");
+        if (numeros.isEmpty()) {
+            return null;
+        }
+
+        if (!numeros.startsWith("55")) {
+            numeros = "55" + numeros;
+        }
+
+        return numeros;
     }
 
 }

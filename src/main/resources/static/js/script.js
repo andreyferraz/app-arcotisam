@@ -1,6 +1,6 @@
 // ==========================================================
 // ARCOTISAM - Template JavaScript puro
-// Navegação por abas, loja, filtro, carrinho e contato.
+// Navegação por abas, loja, filtro e contato.
 // ==========================================================
 
 const products = [
@@ -54,21 +54,14 @@ const products = [
   }
 ];
 
-let cart = JSON.parse(localStorage.getItem("arcotisam_cart")) || [];
-
 const navLinks = document.querySelectorAll(".nav-link");
 const menuToggle = document.getElementById("menuToggle");
 const navLinksBox = document.getElementById("navLinks");
-const cartCount = document.getElementById("cartCount");
 
 // DOM nodes that depend on the currently loaded page
 let productGrid = null;
 let searchProduct = null;
 let categoryFilter = null;
-let cartItems = null;
-let subtotal = null;
-let total = null;
-let checkoutBtn = null;
 let contactForm = null;
 let formMessage = null;
 
@@ -103,7 +96,7 @@ function renderProducts() {
 
   if (!filteredProducts.length) {
     productGrid.innerHTML = `
-      <div class="cart-empty">
+      <div class="admin-empty-state">
         Nenhum produto encontrado para o filtro selecionado.
       </div>
     `;
@@ -119,9 +112,6 @@ function renderProducts() {
         <p>${product.description}</p>
         <div class="product-footer">
           <strong class="price">${formatCurrency(product.price)}</strong>
-          <button class="btn btn-primary" type="button" onclick="addToCart(${product.id})">
-            Adicionar
-          </button>
         </div>
       </div>
     </article>
@@ -219,160 +209,16 @@ function getCategoryLabel(category) {
   return categories[category] || category;
 }
 
-function saveCart() {
-  localStorage.setItem("arcotisam_cart", JSON.stringify(cart));
-}
-
-function addToCart(productId) {
-  const product = products.find(item => String(item.id) === String(productId));
-  const itemInCart = cart.find(item => String(item.id) === String(productId));
-
-  if (itemInCart) {
-    itemInCart.quantity += 1;
-  } else {
-    cart.push({ ...product, quantity: 1 });
-  }
-
-  saveCart();
-  renderCart();
-  updateCartCount();
-}
-
-// Adiciona produto vindo do HTML server-rendered (quando não existe na lista `products` do cliente)
-function addServerProductToCartFromCardData(productId, btn) {
-  const card = btn.closest('.product-card');
-  if (!card) return;
-
-  const name = (card.querySelector('.product-title')?.textContent || '').trim();
-  const priceText = (card.querySelector('.price')?.textContent || '').trim();
-  let price = 0;
-  if (priceText) {
-    const cleaned = priceText.replace(/[^0-9,.-]/g, '').replace(',', '.');
-    price = parseFloat(cleaned) || 0;
-  }
-
-  const imgEl = card.querySelector('.product-image img');
-  let icon = '🧶';
-  if (imgEl) {
-    const src = imgEl.getAttribute('src') || imgEl.getAttribute('data-src') || imgEl.src;
-    if (src) icon = `<img src="${src}" alt="${name}" style="width:48px;height:48px;object-fit:cover;border-radius:8px;">`;
-  } else {
-    const txt = (card.querySelector('.product-image')?.textContent || '').trim();
-    if (txt) icon = txt;
-  }
-
-  const existing = cart.find(item => String(item.id) === String(productId));
-  if (existing) {
-    existing.quantity += 1;
-  } else {
-    cart.push({ id: String(productId), name: name || 'Produto', price: price, icon: icon, quantity: 1 });
-  }
-
-  saveCart();
-  renderCart();
-  updateCartCount();
-}
-
-function changeQuantity(productId, action) {
-  const item = cart.find(product => String(product.id) === String(productId));
-
-  if (!item) return;
-
-  if (action === "increase") {
-    item.quantity += 1;
-  }
-
-  if (action === "decrease") {
-    item.quantity -= 1;
-  }
-
-  if (item.quantity <= 0) {
-    cart = cart.filter(product => String(product.id) !== String(productId));
-  }
-
-  saveCart();
-  renderCart();
-  updateCartCount();
-}
-
-function removeFromCart(productId) {
-  cart = cart.filter(product => String(product.id) !== String(productId));
-  saveCart();
-  renderCart();
-  updateCartCount();
-}
-
-function updateCartCount() {
-  const quantity = cart.reduce((sum, item) => sum + item.quantity, 0);
-  if (cartCount) cartCount.textContent = quantity;
-}
-
-function renderCart() {
-  if (!cartItems) return;
-
-  if (!cart.length) {
-    cartItems.innerHTML = `
-      <div class="cart-empty">
-        Seu carrinho está vazio. Acesse a loja para adicionar produtos.
-      </div>
-    `;
-
-    if (subtotal) subtotal.textContent = formatCurrency(0);
-    if (total) total.textContent = formatCurrency(0);
-    return;
-  }
-
-  cartItems.innerHTML = cart.map(item => `
-    <article class="cart-item">
-      <div class="cart-item-icon">${item.icon}</div>
-      <div>
-        <h4>${item.name}</h4>
-        <p>${formatCurrency(item.price)} por unidade</p>
-      </div>
-      <div class="quantity-control">
-        <button type="button" data-cart-action="decrease" data-cart-id="${String(item.id)}">−</button>
-        <strong>${item.quantity}</strong>
-        <button type="button" data-cart-action="increase" data-cart-id="${String(item.id)}">+</button>
-        <button class="remove-btn" type="button" data-cart-action="remove" data-cart-id="${String(item.id)}" aria-label="Remover item">
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-            <path d="M3 6h18v2H3V6zm2 3h2v11H5V9zm4 0h2v11H9V9zm4 0h2v11h-2V9zm4 0h2v11h-2V9zM8 2h8l-1 2H9L8 2z"/>
-          </svg>
-        </button>
-      </div>
-    </article>
-  `).join("");
-
-  const subtotalValue = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-
-  if (subtotal) subtotal.textContent = formatCurrency(subtotalValue);
-  if (total) total.textContent = formatCurrency(subtotalValue);
-}
-
 // post-load initialization for page-specific elements
 function postLoadInit(page) {
   productGrid = document.getElementById("productGrid");
   searchProduct = document.getElementById("searchProduct");
   categoryFilter = document.getElementById("categoryFilter");
-  cartItems = document.getElementById("cartItems");
-  subtotal = document.getElementById("subtotal");
-  total = document.getElementById("total");
-  checkoutBtn = document.getElementById("checkoutBtn");
   contactForm = document.getElementById("contactForm");
   formMessage = document.getElementById("formMessage");
 
   if (searchProduct) searchProduct.addEventListener("input", renderProducts);
   if (categoryFilter) categoryFilter.addEventListener("change", renderProducts);
-
-  if (checkoutBtn) {
-    checkoutBtn.addEventListener("click", () => {
-      if (!cart.length) {
-        alert("Seu carrinho está vazio.");
-        return;
-      }
-
-      alert("Pedido simulado com sucesso! Integre aqui com seu backend ou gateway de pagamento.");
-    });
-  }
 
   if (contactForm) {
     contactForm.addEventListener("submit", event => {
@@ -389,49 +235,6 @@ function postLoadInit(page) {
 
   // render/update after elements are attached
   renderProducts();
-  renderCart();
-  updateCartCount();
-
-  if (cartItems && !cartItems.dataset.bound) {
-    cartItems.dataset.bound = "true";
-    cartItems.addEventListener("click", (ev) => {
-      const btn = ev.target.closest("button[data-cart-action]");
-      if (!btn) return;
-
-      ev.preventDefault();
-
-      const action = btn.dataset.cartAction;
-      const productId = btn.dataset.cartId;
-
-      if (action === "increase") {
-        changeQuantity(productId, "increase");
-      }
-
-      if (action === "decrease") {
-        changeQuantity(productId, "decrease");
-      }
-
-      if (action === "remove") {
-        removeFromCart(productId);
-      }
-    });
-  }
-
-  // Delegação global para botões de adicionar em server-rendered pages
-  document.addEventListener('click', (ev) => {
-    const btn = ev.target.closest && ev.target.closest('.buy-btn');
-    if (!btn) return;
-    ev.preventDefault();
-    const idAttr = btn.getAttribute('data-id');
-    const numericId = (idAttr && !isNaN(Number(idAttr))) ? Number(idAttr) : idAttr;
-
-    // se o produto está na lista cliente, reutiliza addToCart
-    if (products.find(p => p.id === numericId)) {
-      addToCart(numericId);
-    } else {
-      addServerProductToCartFromCardData(idAttr, btn);
-    }
-  });
 
   // initialize table pagination for server-rendered products list
   if (document.getElementById('produtosTbody')) {
