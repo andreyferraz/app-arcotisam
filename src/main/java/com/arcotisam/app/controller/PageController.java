@@ -17,6 +17,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import com.arcotisam.app.model.Artesao;
 import com.arcotisam.app.model.Produto;
 import com.arcotisam.app.repository.ArtesaoRepository;
+import com.arcotisam.app.service.AdminMasterService;
 import com.arcotisam.app.service.ProdutoService;
 
 @Controller
@@ -24,10 +25,12 @@ public class PageController {
 
     private final ProdutoService produtoService;
     private final ArtesaoRepository artesaoRepository;
+    private final AdminMasterService adminMasterService;
 
-    public PageController(ProdutoService produtoService, ArtesaoRepository artesaoRepository) {
+    public PageController(ProdutoService produtoService, ArtesaoRepository artesaoRepository, AdminMasterService adminMasterService) {
         this.produtoService = produtoService;
         this.artesaoRepository = artesaoRepository;
+        this.adminMasterService = adminMasterService;
     }
 
     @GetMapping({"/", "/home"})
@@ -39,6 +42,7 @@ public class PageController {
 
     @GetMapping("/sobre")
     public String sobre(Model model) {
+        model.addAttribute("galerias", adminMasterService.listarGalerias());
         return "sobre";
     }
 

@@ -26,8 +26,8 @@
 
           <form th:action="@{/admin/senha/alterar}" method="post" class="admin-change-password-form">
             <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
-            <label class="sr-only">Nova senha</label>
-            <input type="password" name="novaSenha" placeholder="Nova senha" required>
+            <label for="novaSenhaAdmin" class="sr-only">Nova senha</label>
+            <input id="novaSenhaAdmin" type="password" name="novaSenha" placeholder="Nova senha" required>
             <button class="btn btn-warning" type="submit">Alterar senha</button>
           </form>
 
@@ -144,6 +144,66 @@
             <div>
               <strong th:text="${produto.nome}">Produto</strong>
               <small th:text="${produto.quantidadeVendida} + ' unidades'">0 unidades</small>
+            </div>
+          </article>
+        </div>
+      </article>
+    </div>
+
+    <div class="container admin-section-header" style="margin-top: 10px;">
+      <div>
+        <span class="eyebrow">Galeria</span>
+        <h2>Galerias de fotos</h2>
+      </div>
+    </div>
+
+    <div class="container admin-grid admin-gallery-grid">
+      <article class="admin-panel admin-form-panel">
+        <div class="panel-head">
+          <div>
+            <span class="eyebrow">Novo álbum</span>
+            <h2>Criar galeria</h2>
+          </div>
+        </div>
+
+        <form th:action="@{/admin/galerias/salvar}" method="post" enctype="multipart/form-data" class="admin-form">
+          <label>
+            Título da galeria
+            <input type="text" name="titulo" placeholder="Ex.: Feira de Artesanato 2026" required>
+          </label>
+
+          <label class="admin-upload">
+            Fotos da galeria
+            <input type="file" name="fotos" accept="image/*" multiple required>
+          </label>
+
+          <p class="admin-note">Selecione uma ou mais fotos. Elas serão exibidas juntas na aba Sobre.</p>
+
+          <button class="btn btn-primary full" type="submit">Salvar galeria</button>
+        </form>
+      </article>
+
+      <article class="admin-panel admin-form-panel">
+        <div class="panel-head">
+          <div>
+            <span class="eyebrow">Publicadas</span>
+            <h2>Galerias cadastradas</h2>
+          </div>
+        </div>
+
+        <div th:if="${#lists.isEmpty(galerias)}" class="admin-empty-state">
+          Nenhuma galeria cadastrada ainda.
+        </div>
+
+        <div th:unless="${#lists.isEmpty(galerias)}" class="gallery-admin-list">
+          <article class="gallery-admin-card" th:each="galeria : ${galerias}">
+            <div class="gallery-admin-head">
+              <strong th:text="${galeria.titulo}">Título da galeria</strong>
+              <small th:text="${#lists.size(galeria.fotos)} + ' fotos'">0 fotos</small>
+            </div>
+
+            <div class="gallery-admin-preview" th:if="${!#lists.isEmpty(galeria.fotos)}">
+              <img th:src="@{|/uploads/${galeria.fotos[0]}|}" th:alt="${galeria.titulo}">
             </div>
           </article>
         </div>

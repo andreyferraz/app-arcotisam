@@ -16,6 +16,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import com.arcotisam.app.dto.ArtesaoAdminForm;
 import com.arcotisam.app.dto.ArtesaoDashboardItem;
+import com.arcotisam.app.dto.GaleriaExibicaoItem;
 import com.arcotisam.app.dto.ProdutoRankingItem;
 import com.arcotisam.app.service.AdminMasterService;
 import com.arcotisam.app.service.UsuarioService;
@@ -42,10 +43,12 @@ public class AdminController {
         ArtesaoAdminForm form = adminMasterService.carregarFormulario(editar);
         List<ArtesaoDashboardItem> artesaos = adminMasterService.listarArtesaos();
         List<ProdutoRankingItem> produtosMaisVendidos = adminMasterService.listarProdutosMaisVendidos(5);
+        List<GaleriaExibicaoItem> galerias = adminMasterService.listarGalerias();
 
         model.addAttribute("artesaoForm", form);
         model.addAttribute("artesaos", artesaos);
         model.addAttribute("produtosMaisVendidos", produtosMaisVendidos);
+        model.addAttribute("galerias", galerias);
         model.addAttribute("labelsProdutosMaisVendidos", produtosMaisVendidos.stream().map(ProdutoRankingItem::getNome).toList());
         model.addAttribute("valoresProdutosMaisVendidos", produtosMaisVendidos.stream().map(ProdutoRankingItem::getQuantidadeVendida).toList());
         model.addAttribute("maxQuantidadeVendida", produtosMaisVendidos.stream().mapToInt(item -> item.getQuantidadeVendida() == null ? 0 : item.getQuantidadeVendida()).max().orElse(0));
@@ -89,6 +92,20 @@ public class AdminController {
         return ADMIN_REDIRECT;
     }
 
+    @PostMapping("/galerias/salvar")
+    public String salvarGaleria(@RequestParam(name = "titulo") String titulo,
+                                @RequestParam(name = "fotos", required = false) MultipartFile[] fotos,
+                                RedirectAttributes redirectAttributes) {
+        try {
+            adminMasterService.salvarGaleria(titulo, fotos);
+            redirectAttributes.addFlashAttribute(SUCESSO, "Galeria cadastrada com sucesso.");
+        } catch (RuntimeException ex) {
+            redirectAttributes.addFlashAttribute("erro", ex.getMessage());
+        }
+
+        return ADMIN_REDIRECT;
+    }
+
     @PostMapping("/senha/alterar")
     public String alterarSenha(@RequestParam(name = "novaSenha", required = true) String novaSenha,
                                RedirectAttributes redirectAttributes) {
@@ -112,6 +129,10 @@ public class AdminController {
             redirectAttributes.addFlashAttribute("erro", ex.getMessage());
         }
 
+        return adminRedirect();
+    }
+
+    private String adminRedirect() {
         return ADMIN_REDIRECT;
     }
 }

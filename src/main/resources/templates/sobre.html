@@ -49,6 +49,35 @@
       </div>
     </div>
   </div>
+
+  <div class="container gallery-section">
+    <div class="page-header page-header-left" style="margin-top: 52px; text-align: left;">
+      <span class="eyebrow">Galerias</span>
+      <h2>Galeria de fotos</h2>
+      <p>
+        Registros visuais das atividades, produtos e momentos da ARCOTISAM, alimentados pelo painel master.
+      </p>
+    </div>
+
+    <div th:if="${#lists.isEmpty(galerias)}" class="admin-empty-state">
+      Ainda não existem galerias cadastradas.
+    </div>
+
+    <div th:unless="${#lists.isEmpty(galerias)}" class="gallery-grid">
+      <article class="gallery-card" th:each="galeria : ${galerias}">
+        <div class="gallery-card-head">
+          <h3 th:text="${galeria.titulo}">Título da galeria</h3>
+          <span th:text="${#lists.size(galeria.fotos)} + ' fotos'">0 fotos</span>
+        </div>
+
+        <div class="gallery-photos" th:if="${!#lists.isEmpty(galeria.fotos)}">
+          <figure class="gallery-photo" th:each="foto : ${galeria.fotos}">
+            <img th:src="@{|/uploads/${foto}|}" th:alt="${galeria.titulo}">
+          </figure>
+        </div>
+      </article>
+    </div>
+  </div>
 </section>
 </div>
 </body>

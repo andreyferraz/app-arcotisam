@@ -33,6 +33,22 @@ CREATE TABLE IF NOT EXISTS produtos (
     CONSTRAINT fk_produtos_artesao FOREIGN KEY (artesao_id) REFERENCES artesaos(id) ON DELETE CASCADE
 );
 
+-- Galerias de fotos exibidas na aba Sobre
+CREATE TABLE IF NOT EXISTS galerias (
+    id TEXT PRIMARY KEY,
+    titulo TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS galeria_fotos (
+    id TEXT PRIMARY KEY,
+    galeria_id TEXT NOT NULL,
+    arquivo_url TEXT NOT NULL,
+    ordem INTEGER NOT NULL DEFAULT 0,
+    CONSTRAINT fk_galeria_fotos_galeria FOREIGN KEY (galeria_id) REFERENCES galerias(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS ix_galeria_fotos_galeria_id ON galeria_fotos(galeria_id);
+
 -- Tabela de movimentações (entradas/saídas) para controle de caixa dos artesãos
 CREATE TABLE IF NOT EXISTS movimentacoes (
     id TEXT PRIMARY KEY,

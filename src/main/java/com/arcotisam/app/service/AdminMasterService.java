@@ -1,11 +1,14 @@
 package com.arcotisam.app.service;
 
 import java.util.Comparator;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Arrays;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.StreamSupport;
 
@@ -18,13 +21,13 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.arcotisam.app.dto.ArtesaoAdminForm;
 import com.arcotisam.app.dto.ArtesaoDashboardItem;
+import com.arcotisam.app.dto.GaleriaExibicaoItem;
 import com.arcotisam.app.dto.ProdutoRankingItem;
 import com.arcotisam.app.enuns.Role;
 import com.arcotisam.app.model.Artesao;
 import com.arcotisam.app.model.Produto;
 import com.arcotisam.app.model.Usuario;
 import com.arcotisam.app.repository.ArtesaoRepository;
-import com.arcotisam.app.repository.MovimentacaoRepository;
 import com.arcotisam.app.repository.ProdutoRepository;
 import com.arcotisam.app.repository.UsuarioRepository;
 import com.arcotisam.app.utils.ValidationUtils;
@@ -33,6 +36,11 @@ import com.arcotisam.app.utils.ValidationUtils;
 public class AdminMasterService {
 
     private static final String ARTESAO_NAO_ENCONTRADO = "Artesao nao encontrado.";
+    private static final String CAMPO_ID = "id";
+    private static final String CAMPO_ARTESAO_ID = "artesaoId";
+    private static final String CAMPO_USUARIO_ID = "usuarioId";
+    private static final String CAMPO_TITULO = "titulo";
+    private static final String ARTESAO_SEM_USUARIO_VINCULADO = "Artesao sem usuario vinculado.";
 
     private final ArtesaoRepository artesaoRepository;
     private final UsuarioRepository usuarioRepository;
@@ -114,6 +122,27 @@ public class AdminMasterService {
                 .sum();
     }
 
+    public List<GaleriaExibicaoItem> listarGalerias() {
+        List<GaleriaExibicaoItem> galerias = namedParameterJdbcTemplate.query(
+            "SELECT id, titulo FROM galerias ORDER BY rowid DESC",
+                new MapSqlParameterSource(),
+                (rs, rowNum) -> new GaleriaExibicaoItem(
+                UUID.fromString(rs.getString(CAMPO_ID)),
+                rs.getString(CAMPO_TITULO),
+                        new ArrayList<>())
+        );
+
+        for (GaleriaExibicaoItem galeria : galerias) {
+            List<String> fotos = namedParameterJdbcTemplate.query(
+                    "SELECT arquivo_url FROM galeria_fotos WHERE galeria_id = :galeriaId ORDER BY ordem ASC, rowid ASC",
+                    new MapSqlParameterSource().addValue("galeriaId", galeria.getId().toString()),
+                (rs, rowNum) -> rs.getString("arquivo_url"));
+            galeria.setFotos(fotos);
+        }
+
+        return galerias;
+    }
+
     @Transactional
     public void salvarArtesao(ArtesaoAdminForm form, MultipartFile foto) {
         ValidationUtils.validarCampoObrigatorio(form, "formulario");
@@ -127,6 +156,59 @@ public class AdminMasterService {
         }
 
         atualizarArtesao(form, foto);
+    }
+
+    @Transactional
+    public void salvarGaleria(String titulo, MultipartFile[] fotos) {
+        ValidationUtils.validarCampoStringObrigatorio(titulo, CAMPO_TITULO);
+
+        List<MultipartFile> fotosValidas = fotos == null ? List.of() : Arrays.stream(fotos)
+                .filter(foto -> foto != null && !foto.isEmpty())
+                .toList();
+
+        if (fotosValidas.isEmpty()) {
+            throw new IllegalArgumentException("Adicione ao menos uma foto para a galeria.");
+        }
+
+        UUID galeriaId = UUID.randomUUID();
+        List<String> arquivosSalvos = new ArrayList<>();
+
+        try {
+            namedParameterJdbcTemplate.update(
+                    "INSERT INTO galerias (id, titulo) VALUES (:id, :titulo)",
+                    new MapSqlParameterSource()
+                        .addValue(CAMPO_ID, galeriaId.toString())
+                        .addValue(CAMPO_TITULO, titulo.trim())
+            );
+
+            for (int index = 0; index < fotosValidas.size(); index++) {
+                MultipartFile foto = fotosValidas.get(index);
+                String arquivoUrl = fileUploadService.salvarImagem(foto);
+                arquivosSalvos.add(arquivoUrl);
+
+                namedParameterJdbcTemplate.update(
+                        "INSERT INTO galeria_fotos (id, galeria_id, arquivo_url, ordem) VALUES (:id, :galeriaId, :arquivoUrl, :ordem)",
+                        new MapSqlParameterSource()
+                        .addValue(CAMPO_ID, UUID.randomUUID().toString())
+                                .addValue("galeriaId", galeriaId.toString())
+                                .addValue("arquivoUrl", arquivoUrl)
+                                .addValue("ordem", index)
+                );
+            }
+        } catch (RuntimeException ex) {
+            for (String arquivoUrl : arquivosSalvos) {
+                try {
+                    fileUploadService.removerImagem(arquivoUrl);
+                } catch (Exception ignored) {
+                    // ignore cleanup failures
+                }
+            }
+            namedParameterJdbcTemplate.update(
+                    "DELETE FROM galerias WHERE id = :id",
+                    new MapSqlParameterSource().addValue(CAMPO_ID, galeriaId.toString())
+            );
+            throw ex;
+        }
     }
 
     @Transactional
@@ -146,13 +228,13 @@ public class AdminMasterService {
 
         // remove dependent rows directly to avoid Spring Data JDBC FOR UPDATE behavior on SQLite
         namedParameterJdbcTemplate.update(
-                "DELETE FROM movimentacoes WHERE artesao_id = :artesaoId",
-                new MapSqlParameterSource().addValue("artesaoId", artesao.getId().toString()));
+            "DELETE FROM movimentacoes WHERE artesao_id = :artesaoId",
+            new MapSqlParameterSource().addValue(CAMPO_ARTESAO_ID, requireId(artesao.getId(), ARTESAO_NAO_ENCONTRADO)));
 
         // remove product images first, then the rows
         List<String> imagensProdutos = namedParameterJdbcTemplate.query(
                 "SELECT imagem_url FROM produtos WHERE artesao_id = :artesaoId",
-                new MapSqlParameterSource().addValue("artesaoId", artesao.getId().toString()),
+            new MapSqlParameterSource().addValue(CAMPO_ARTESAO_ID, requireId(artesao.getId(), ARTESAO_NAO_ENCONTRADO)),
                 (rs, rowNum) -> rs.getString("imagem_url")
         );
         for (String imagemUrl : imagensProdutos) {
@@ -166,17 +248,17 @@ public class AdminMasterService {
         }
         namedParameterJdbcTemplate.update(
                 "DELETE FROM produtos WHERE artesao_id = :artesaoId",
-                new MapSqlParameterSource().addValue("artesaoId", artesao.getId().toString()));
+            new MapSqlParameterSource().addValue(CAMPO_ARTESAO_ID, requireId(artesao.getId(), ARTESAO_NAO_ENCONTRADO)));
 
         if (artesao.getUsuarioId() != null) {
             namedParameterJdbcTemplate.update(
                     "DELETE FROM usuarios WHERE id = :usuarioId",
-                    new MapSqlParameterSource().addValue("usuarioId", artesao.getUsuarioId().toString()));
+                    new MapSqlParameterSource().addValue(CAMPO_USUARIO_ID, requireId(artesao.getUsuarioId(), ARTESAO_SEM_USUARIO_VINCULADO)));
         }
 
         namedParameterJdbcTemplate.update(
                 "DELETE FROM artesaos WHERE id = :id",
-                new MapSqlParameterSource().addValue("id", artesao.getId().toString()));
+            new MapSqlParameterSource().addValue(CAMPO_ID, requireId(artesao.getId(), ARTESAO_NAO_ENCONTRADO)));
     }
 
     private void criarArtesao(ArtesaoAdminForm form, MultipartFile foto) {
@@ -211,12 +293,12 @@ public class AdminMasterService {
             "INSERT INTO artesaos (id, nome, descricao, whatsapp, foto_url, usuario_id) " +
             "VALUES (:id, :nome, :descricao, :whatsapp, :fotoUrl, :usuarioId)",
             new MapSqlParameterSource()
-                .addValue("id", artesao.getId().toString())
+                .addValue(CAMPO_ID, requireId(artesao.getId(), ARTESAO_NAO_ENCONTRADO))
                 .addValue("nome", artesao.getNome())
                 .addValue("descricao", artesao.getDescricao())
                 .addValue("whatsapp", artesao.getWhatsapp())
                 .addValue("fotoUrl", artesao.getFotoUrl())
-                .addValue("usuarioId", artesao.getUsuarioId().toString())
+                .addValue(CAMPO_USUARIO_ID, requireId(artesao.getUsuarioId(), ARTESAO_SEM_USUARIO_VINCULADO))
         );
     }
 
@@ -226,7 +308,7 @@ public class AdminMasterService {
 
         UUID usuarioId = artesao.getUsuarioId();
         if (usuarioId == null) {
-            throw new IllegalArgumentException("Artesao sem usuario vinculado.");
+            throw new IllegalArgumentException(ARTESAO_SEM_USUARIO_VINCULADO);
         }
 
         Usuario usuario = usuarioRepository.findById(usuarioId)
@@ -270,12 +352,12 @@ public class AdminMasterService {
             "UPDATE artesaos SET nome = :nome, descricao = :descricao, whatsapp = :whatsapp, " +
             "foto_url = :fotoUrl, usuario_id = :usuarioId WHERE id = :id",
             new MapSqlParameterSource()
-                .addValue("id", artesao.getId().toString())
+                .addValue(CAMPO_ID, requireId(artesao.getId(), ARTESAO_NAO_ENCONTRADO))
                 .addValue("nome", artesao.getNome())
                 .addValue("descricao", artesao.getDescricao())
                 .addValue("whatsapp", artesao.getWhatsapp())
                 .addValue("fotoUrl", artesao.getFotoUrl())
-                .addValue("usuarioId", artesao.getUsuarioId().toString())
+                .addValue(CAMPO_USUARIO_ID, requireId(artesao.getUsuarioId(), ARTESAO_SEM_USUARIO_VINCULADO))
         );
     }
 
@@ -318,6 +400,10 @@ public class AdminMasterService {
 
     private int quantidadeVendida(Produto produto) {
         return Optional.ofNullable(produto.getQuantidadeVendida()).orElse(0);
+    }
+
+    private String requireId(UUID id, String message) {
+        return Objects.requireNonNull(id, message).toString();
     }
 
     private String limparOuNulo(String valor) {
