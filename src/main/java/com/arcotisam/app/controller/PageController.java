@@ -2,6 +2,9 @@ package com.arcotisam.app.controller;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.StreamSupport;
 
 import org.springframework.stereotype.Controller;
@@ -30,6 +33,7 @@ public class PageController {
     @GetMapping({"/", "/home"})
     public String home(Model model) {
         model.addAttribute("ultimosProdutos", produtoService.listarUltimosCadastrados(3));
+        model.addAttribute("artesaosAleatorios", listarArtesaosAleatorios(3));
         return "index";
     }
 
@@ -81,5 +85,19 @@ public class PageController {
     @GetMapping("/login")
     public String login(Model model) {
         return "login";
+    }
+
+    private List<Artesao> listarArtesaosAleatorios(int limite) {
+        List<Artesao> artesaos = StreamSupport.stream(artesaoRepository.findAll().spliterator(), false)
+            .filter(artesao -> artesao.getId() != null)
+            .toList();
+
+        if (artesaos.isEmpty()) {
+            return artesaos;
+        }
+
+        List<Artesao> embaralhados = new ArrayList<>(artesaos);
+        Collections.shuffle(embaralhados, ThreadLocalRandom.current());
+        return embaralhados.subList(0, Math.min(limite, embaralhados.size()));
     }
 }
