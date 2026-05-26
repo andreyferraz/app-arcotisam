@@ -51,7 +51,7 @@
     </div>
 
     <div class="container admin-grid" style="margin-top: 0;">
-      <article class="admin-panel admin-form-panel">
+      <article class="admin-panel admin-form-panel" id="blog-editor-panel">
         <div class="panel-head">
           <div>
             <span class="eyebrow">Home</span>
@@ -152,7 +152,7 @@
               <strong th:text="${post.titulo}">Título</strong>
               <small th:text="${#temporals.format(post.dataPublicacao, 'dd/MM/yyyy')}">01/01/2026</small>
               <div class="blog-admin-actions">
-                <a class="btn btn-secondary" th:href="@{/admin(editarPost=${post.id})}">Editar</a>
+                <a class="btn btn-secondary" th:href="@{/admin(editarPost=${post.id})} + '#blog-editor-panel'">Editar</a>
                 <form th:action="@{/admin/blog/{id}/excluir(id=${post.id})}" method="post">
                   <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
                   <button class="btn btn-danger" type="submit" onclick="return confirm('Deseja excluir esta postagem?');">Excluir</button>

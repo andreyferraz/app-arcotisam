@@ -147,7 +147,7 @@ public class AdminController {
         } catch (RuntimeException ex) {
             redirectAttributes.addFlashAttribute("erro", ex.getMessage());
             if (id != null) {
-                return "redirect:/admin?editarPost=" + id;
+                return "redirect:/admin?editarPost=" + id + "#blog-editor-panel";
             }
         }
 
