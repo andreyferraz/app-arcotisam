@@ -74,6 +74,7 @@ public class PageController {
 
     @GetMapping("/associados")
     public String associados(Model model) {
+        model.addAttribute("artesaos", adminMasterService.listarArtesaos());
         return "associados";
     }
 

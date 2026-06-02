@@ -11,30 +11,26 @@
   <div class="container page-header">
     <span class="eyebrow">Nossa rede</span>
     <h2>Artesãos Associados</h2>
-    <p>Conheça alguns perfis fictícios usados como exemplo para o layout do portal.</p>
+    <p>Conheça os artesãos cadastrados no sistema.</p>
   </div>
 
-  <div class="container member-grid">
-    <article class="member-card">
-      <div class="member-avatar">AM</div>
-      <h3>Ana Maria</h3>
-      <p>Especialista em cerâmica decorativa e peças utilitárias.</p>
-      <span>Cerâmica</span>
+  <div class="container member-grid" th:if="${!#lists.isEmpty(artesaos)}">
+    <article class="member-card" th:each="artesao : ${artesaos}">
+      <div class="member-avatar member-photo" th:if="${artesao.fotoUrl != null and !#strings.isEmpty(artesao.fotoUrl)}">
+        <img th:src="@{|/uploads/${artesao.fotoUrl}|}" th:alt="${'Foto de ' + artesao.nome}">
+      </div>
+      <div class="member-avatar" th:unless="${artesao.fotoUrl != null and !#strings.isEmpty(artesao.fotoUrl)}">ARC</div>
+      <h3 th:text="${artesao.nome}">Nome do artesão</h3>
+      <p th:text="${artesao.descricao}">Descrição do artesão</p>
+      <span th:text="${artesao.whatsapp != null and !#strings.isEmpty(artesao.whatsapp) ? artesao.whatsapp : artesao.totalProdutos + ' produtos'}">Contato</span>
+      <p style="margin-top: 14px; font-size: 0.95rem;">
+        <a th:href="@{/loja(artesaoId=${artesao.id})}">Ver produtos</a>
+      </p>
     </article>
+  </div>
 
-    <article class="member-card">
-      <div class="member-avatar">JS</div>
-      <h3>João Silva</h3>
-      <p>Produção de peças em madeira, esculturas e artigos regionais.</p>
-      <span>Madeira</span>
-    </article>
-
-    <article class="member-card">
-      <div class="member-avatar">CL</div>
-      <h3>Carla Lima</h3>
-      <p>Trabalhos têxteis, bolsas, acessórios e bordados manuais.</p>
-      <span>Têxtil</span>
-    </article>
+  <div class="container page-header" th:if="${#lists.isEmpty(artesaos)}">
+    <p>Nenhum artesão foi cadastrado ainda.</p>
   </div>
 
 </section>
