@@ -31,6 +31,7 @@ public class ProdutoService {
     private static final String CAMPO_ATIVO = "ativo";
     private static final String CAMPO_QUANTIDADE_VENDIDA_DB = "quantidade_vendida";
     private static final String CAMPO_ARTESAO_ID = "artesaoId";
+    private static final String CAMPO_ARTESAO_ID_DB = "artesao_id";
     private static final String CAMPO_QUANTIDADE_VENDIDA = "quantidadeVendida";
     private static final String MENSAGEM_ID_NAO_NULO = "Produto id nao pode ser nulo";
 
@@ -74,7 +75,7 @@ public class ProdutoService {
                         quantidadeVendida = null;
                     }
 
-                    return new Produto(
+                        return new Produto(
                             UUID.fromString(rs.getString("id")),
                             rs.getString(CAMPO_NOME),
                             rs.getString(CAMPO_DESCRICAO),
@@ -82,7 +83,7 @@ public class ProdutoService {
                             rs.getString(CAMPO_IMAGEM_URL),
                             rs.getInt(CAMPO_ATIVO) != 0,
                             quantidadeVendida,
-                            UUID.fromString(rs.getString(CAMPO_ARTESAO_ID)),
+                            UUID.fromString(rs.getString(CAMPO_ARTESAO_ID_DB)),
                             false);
                 });
     }
