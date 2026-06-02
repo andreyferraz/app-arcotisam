@@ -59,7 +59,8 @@ public class SecurityConfig {
                     .requestMatchers(HttpMethod.DELETE, ARTESAO_PATH).hasAnyRole(ROLE_ADMIN_MASTER, ROLE_ARTESAO)
                     .requestMatchers("/admin", "/admin/**").hasRole(ROLE_ADMIN_MASTER)
                     .requestMatchers("/artesao", ARTESAO_PATH).hasAnyRole(ROLE_ADMIN_MASTER, ROLE_ARTESAO)
-                    .anyRequest().authenticated()
+                    // Allow all other requests (public site) - only admin/artesao endpoints above require auth
+                    .anyRequest().permitAll()
                 )
                 .formLogin(form -> form
                     .loginPage(LOGIN_PATH)
