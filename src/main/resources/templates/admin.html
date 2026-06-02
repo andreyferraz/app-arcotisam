@@ -224,7 +224,7 @@
             <span th:unless="${edicao}">A senha será criada para o login do artesão.</span>
           </p>
 
-          <button class="btn btn-primary full" type="submit" th:text="${edicao ? 'Atualizar artesão' : 'Cadastrar artesão'}">Cadastrar artesão</button>
+          <button class="btn btn-primary full preserve-scroll" type="submit" th:text="${edicao ? 'Atualizar artesão' : 'Cadastrar artesão'}">Cadastrar artesão</button>
         </form>
       </article>
 
@@ -355,7 +355,7 @@
         </div>
 
         <div class="admin-card-actions">
-          <a class="btn btn-secondary" th:href="@{/admin(editar=${item.id})}">Editar</a>
+          <a class="btn btn-secondary preserve-scroll" th:href="@{/admin(editar=${item.id})} + '#cadastro-artesao'">Editar</a>
           <form th:action="@{/admin/artesaos/{id}/excluir(id=${item.id})}" method="post">
             <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
             <button class="btn btn-danger" type="submit" onclick="return confirm('Deseja excluir este artesão?');">Excluir</button>
@@ -370,5 +370,56 @@
   </section>
 
 </div>
+</div>
+
+<script>
+(function(){
+  const containerSelector = '#admin';
+
+  function saveScroll() {
+    try {
+      const y = window.scrollY || window.pageYOffset || document.documentElement.scrollTop;
+      sessionStorage.setItem('admin-scroll', String(y));
+    } catch (e) {
+      // ignore
+    }
+  }
+
+    document.addEventListener('DOMContentLoaded', function(){
+    // Save scroll when any admin form is submitted
+    document.querySelectorAll(containerSelector + ' form').forEach(function(f){
+      f.addEventListener('submit', saveScroll);
+    });
+
+    // Save scroll when clicking edit links that should preserve position
+    document.querySelectorAll(containerSelector + ' a.preserve-scroll, ' + containerSelector + ' button.preserve-scroll').forEach(function(el){
+      el.addEventListener('click', function(){
+        saveScroll();
+      });
+    });
+
+    // On load, restore saved position first (if present). Otherwise scroll to alert.
+    try {
+      const saved = sessionStorage.getItem('admin-scroll');
+      if (saved) {
+        const y = parseInt(saved, 10);
+        if (!Number.isNaN(y)) {
+          // small timeout to allow browser to finish layout
+          setTimeout(function(){ window.scrollTo(0, y); sessionStorage.removeItem('admin-scroll'); }, 50);
+          return;
+        }
+        sessionStorage.removeItem('admin-scroll');
+      }
+
+      const alertEl = document.querySelector('.admin-alert.success, .admin-alert.error');
+      if (alertEl) {
+        alertEl.scrollIntoView({behavior: 'auto', block: 'center'});
+      }
+    } catch (e) {
+      // ignore
+    }
+  });
+})();
+</script>
 </body>
 </html>

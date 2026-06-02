@@ -533,7 +533,20 @@ public class AdminMasterService {
             artesao.setFotoUrl(salvarFotoSeExistir(foto));
         }
 
-        usuarioRepository.save(usuario);
+        // ensure username and password are present to avoid NOT NULL constraint violations
+        ValidationUtils.validarCampoStringObrigatorio(usuario.getUsername(), "username");
+        ValidationUtils.validarCampoStringObrigatorio(usuario.getPassword(), "password");
+
+        var userParams = new MapSqlParameterSource()
+            .addValue("id", usuario.getId().toString())
+            .addValue("username", usuario.getUsername())
+            .addValue("password", usuario.getPassword())
+            .addValue("fotoUrl", usuario.getFotoUrl())
+            .addValue("role", usuario.getRole() != null ? usuario.getRole().name() : null);
+
+        namedParameterJdbcTemplate.update(
+            "UPDATE usuarios SET username = :username, password = :password, foto_url = :fotoUrl, role = :role WHERE id = :id",
+            userParams);
         namedParameterJdbcTemplate.update(
             "UPDATE artesaos SET nome = :nome, descricao = :descricao, whatsapp = :whatsapp, " +
             "foto_url = :fotoUrl, usuario_id = :usuarioId WHERE id = :id",

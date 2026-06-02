@@ -90,6 +90,10 @@ public class AdminController {
             return ADMIN_REDIRECT;
         }
 
+        // After successful edit, keep the admin panel scrolled to the artesao form
+        if (form.getId() != null) {
+            return "redirect:/admin?editar=" + form.getId() + "#cadastro-artesao";
+        }
         return ADMIN_REDIRECT;
     }
 
