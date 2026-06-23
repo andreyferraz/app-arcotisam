@@ -308,10 +308,16 @@
             <h3>Fotos atuais</h3>
             <div class="gallery-edit-current-grid">
               <label class="gallery-edit-photo" th:each="foto : ${galeriaEditando.fotos}">
-                  <button type="button" class="gallery-photo-button gallery-expand-photo"
-                    th:attr="data-fullsrc=@{|/uploads/${foto}|},aria-label=${'Ampliar foto de ' + galeriaEditando.titulo}">
-                    <img th:src="@{|/uploads/${foto}|}" th:alt="${galeriaEditando.titulo}" class="gallery-photo-image">
-                  </button>
+                <img th:src="@{|/uploads/${foto}|}" th:alt="${galeriaEditando.titulo}" class="gallery-photo-image" th:attr="data-gallery-preview=${foto}">
+                <label class="gallery-rotate-control">
+                  Rotação
+                  <select name="fotosRotacao" data-gallery-rotation th:attr="data-gallery-source=${foto},data-gallery-fullsrc=@{|/uploads/${foto}|},data-gallery-preview=${foto}">
+                    <option value="0">Padrão</option>
+                    <option value="90">90° à direita</option>
+                    <option value="180">180°</option>
+                    <option value="270">90° à esquerda</option>
+                  </select>
+                </label>
                 <span>
                   <input type="checkbox" name="fotosRemover" th:value="${foto}">
                   Remover

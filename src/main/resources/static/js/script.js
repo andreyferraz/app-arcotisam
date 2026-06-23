@@ -73,6 +73,7 @@ let shopImageLightbox = null;
 let shopImageLightboxImg = null;
 let shopImageLightboxClose = null;
 let activeLightboxSource = null;
+let activeGalleryRotationSubmit = false;
 
 function formatCurrency(value) {
   return value.toLocaleString("pt-BR", {
@@ -321,6 +322,57 @@ async function prepareImageOrientationInputs(form) {
   }
 }
 
+async function prepareGalleryRotations(form) {
+  const fileInput = form.querySelector('input[type="file"][name="fotos"]');
+  if (!fileInput) {
+    return;
+  }
+
+  const dataTransfer = new DataTransfer();
+  const existingFiles = fileInput.files ? Array.from(fileInput.files) : [];
+  existingFiles.forEach(file => dataTransfer.items.add(file));
+
+  const removeValues = new Set(Array.from(form.querySelectorAll('input[name="fotosRemover"]:checked')).map(input => input.value));
+  const rotationControls = Array.from(form.querySelectorAll('[data-gallery-rotation]'));
+
+  for (const control of rotationControls) {
+    const rotation = Number(control.value) || 0;
+    const sourceFile = control.getAttribute('data-gallery-source');
+    const fullSrc = control.getAttribute('data-gallery-fullsrc');
+    if (!sourceFile || !fullSrc || rotation % 360 === 0 || removeValues.has(sourceFile)) {
+      continue;
+    }
+
+    const rotatedFile = await fetchRotatedGalleryFile(fullSrc, rotation);
+    dataTransfer.items.add(rotatedFile);
+    removeValues.add(sourceFile);
+  }
+
+  fileInput.files = dataTransfer.files;
+
+  removeValues.forEach(value => {
+    const checkbox = form.querySelector(`input[name="fotosRemover"][value="${CSS.escape(value)}"]`);
+    if (checkbox) {
+      checkbox.checked = true;
+    }
+  });
+}
+
+function atualizarPreviewRotacaoGaleria(select) {
+  const rotation = Number(select.value) || 0;
+  const previewKey = select.getAttribute('data-gallery-preview');
+  if (!previewKey) {
+    return;
+  }
+
+  const previewImage = document.querySelector(`img[data-gallery-preview="${CSS.escape(previewKey)}"]`);
+  if (!previewImage) {
+    return;
+  }
+
+  previewImage.style.transform = `rotate(${rotation}deg)`;
+}
+
 function updateImagePreview(previewContainer, previewImage, file, rotationDegrees) {
   if (!previewContainer || !previewImage || !file) {
     return;
@@ -363,6 +415,18 @@ async function loadImageIntoFieldFromUrl(fileInput, imageUrl, previewContainer, 
   fileInput.files = dataTransfer.files;
 
   updateImagePreview(previewContainer, previewImage, file, 0);
+}
+
+async function fetchRotatedGalleryFile(imageUrl, degrees) {
+  const response = await fetch(imageUrl, { cache: 'no-store' });
+  if (!response.ok) {
+    throw new Error('Nao foi possivel carregar uma imagem da galeria.');
+  }
+
+  const blob = await response.blob();
+  const originalName = imageUrl.split('/').pop() || 'galeria.jpg';
+  const originalFile = new File([blob], originalName, { type: blob.type || 'image/jpeg' });
+  return rotateImageFile(originalFile, degrees);
 }
 
 function openShopImageLightbox(imageUrl, altText) {
@@ -487,15 +551,32 @@ function postLoadInit(page) {
         return;
       }
 
-      const selectors = form.querySelectorAll('[data-image-orientation]');
-      if (!selectors.length) {
+      if (activeGalleryRotationSubmit) {
         return;
       }
 
+      const selectors = form.querySelectorAll('[data-image-orientation]');
+      if (!selectors.length) {
+        const galleryRotations = form.querySelectorAll('[data-gallery-rotation]');
+        if (!galleryRotations.length) {
+          return;
+        }
+      }
+
       event.preventDefault();
-      isProcessingImageOrientation = true;
+      if (form.querySelectorAll('[data-gallery-rotation]').length) {
+        activeGalleryRotationSubmit = true;
+      } else {
+        isProcessingImageOrientation = true;
+      }
 
       try {
+        if (form.querySelectorAll('[data-gallery-rotation]').length) {
+          await prepareGalleryRotations(form);
+          form.submit();
+          return;
+        }
+
         await prepareImageOrientationInputs(form);
         form.submit();
       } catch (error) {
@@ -504,8 +585,22 @@ function postLoadInit(page) {
         }
       } finally {
         isProcessingImageOrientation = false;
+        activeGalleryRotationSubmit = false;
       }
     });
+  });
+
+  document.querySelectorAll('[data-gallery-rotation]').forEach(select => {
+    if (select.dataset.rotationBound === 'true') {
+      return;
+    }
+
+    select.dataset.rotationBound = 'true';
+    select.addEventListener('change', () => {
+      atualizarPreviewRotacaoGaleria(select);
+    });
+
+    atualizarPreviewRotacaoGaleria(select);
   });
 
   // render/update after elements are attached
