@@ -2,6 +2,7 @@ package com.arcotisam.app.dto;
 
 import java.time.LocalDate;
 import java.util.UUID;
+import java.util.List;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -16,5 +17,6 @@ public class BlogPostItem {
     private String titulo;
     private LocalDate dataPublicacao;
     private String fotoUrl;
+    private List<String> fotos;
     private String conteudoHtml;
 }

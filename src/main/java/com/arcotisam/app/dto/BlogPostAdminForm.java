@@ -15,5 +15,6 @@ public class BlogPostAdminForm {
     private String titulo;
     private String dataPublicacao;
     private String fotoUrlAtual;
+    private String fotoCapaAtual;
     private String conteudoHtml;
 }
