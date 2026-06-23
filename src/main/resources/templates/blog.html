@@ -7,6 +7,128 @@
 
 <body th:replace="~{layout :: layout('Blog — Arcotisam', ~{::blogContent})}">
 <div th:fragment="blogContent">
+
+  <style>
+    .blog-grid {
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      align-items: stretch;
+    }
+
+    .blog-card {
+      height: 100%;
+      transition: transform 0.18s ease, box-shadow 0.18s ease;
+    }
+
+    .blog-card:hover {
+      transform: translateY(-3px);
+      box-shadow: var(--shadow-soft);
+    }
+
+    .blog-card-clickable {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      color: inherit;
+      text-decoration: none;
+    }
+
+    .blog-card-clickable:hover h3 {
+      color: var(--color-terracotta);
+    }
+
+    .blog-card-image {
+      height: 170px;
+      aspect-ratio: auto;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 30% 20%, rgba(224, 158, 54, 0.18), transparent 35%),
+        radial-gradient(circle at 80% 85%, rgba(94, 137, 144, 0.16), transparent 35%),
+        var(--color-sand-dark);
+    }
+
+    .blog-card-image > img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center center;
+    }
+
+    .blog-card-cover-gallery {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 4px;
+      width: 100%;
+      height: 100%;
+    }
+
+    .blog-card-cover-gallery img {
+      width: 100%;
+      height: 100%;
+      min-height: 0;
+      object-fit: cover;
+      object-position: center center;
+      display: block;
+    }
+
+    .blog-card-cover-gallery img:first-child:nth-last-child(1) {
+      grid-column: 1 / -1;
+    }
+
+    .blog-card-cover-gallery img:first-child:nth-last-child(2),
+    .blog-card-cover-gallery img:first-child:nth-last-child(2) ~ img {
+      height: 170px;
+    }
+
+    .blog-card-cover-gallery img:first-child:nth-last-child(3) {
+      grid-row: span 2;
+    }
+
+    .blog-card-cover-gallery img:nth-child(n + 5) {
+      display: none;
+    }
+
+    .blog-card-body {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .blog-card-body h3 {
+      margin-top: 4px;
+    }
+
+    .blog-card-body .blog-content {
+      display: -webkit-box;
+      -webkit-line-clamp: 4;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .blog-card-read-more {
+      display: inline-flex;
+      width: fit-content;
+      margin-top: auto;
+      padding-top: 16px;
+      color: var(--color-terracotta);
+      font-weight: 900;
+    }
+
+    @media (max-width: 620px) {
+      .blog-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .blog-card-image {
+        height: 150px;
+      }
+
+      .blog-card-cover-gallery img:first-child:nth-last-child(2),
+      .blog-card-cover-gallery img:first-child:nth-last-child(2) ~ img {
+        height: 150px;
+      }
+    }
+  </style>
+
   <section class="page-section active" id="blog" data-section="blog">
     <div class="container page-header page-header-left" style="text-align: left;">
       <span class="eyebrow">Blog</span>
@@ -23,15 +145,31 @@
 
       <div th:unless="${#lists.isEmpty(blogPosts)}" class="blog-grid">
         <article class="blog-card" th:each="post : ${blogPosts}">
-          <div class="blog-card-image">
-            <img th:src="@{|/uploads/${post.fotoUrl}|}" th:alt="${post.titulo}">
-          </div>
+          <a class="blog-card-clickable"
+             th:href="@{/blog/{id}(id=${post.id})}"
+             th:aria-label="${'Abrir postagem: ' + post.titulo}">
 
-          <div class="blog-card-body">
-            <div class="blog-meta" th:text="${#temporals.format(post.dataPublicacao, 'dd/MM/yyyy')}">01/01/2026</div>
-            <h3 th:text="${post.titulo}">Título da postagem</h3>
-            <div class="blog-content" th:utext="${post.conteudoHtml}">Conteúdo da postagem</div>
-          </div>
+            <div class="blog-card-image">
+              <div class="blog-card-cover-gallery" th:if="${post.fotos != null and !#lists.isEmpty(post.fotos)}">
+                <img th:each="foto : ${post.fotos}"
+                     th:src="@{|/uploads/${foto}|}"
+                     th:alt="${post.titulo}">
+              </div>
+
+              <img th:unless="${post.fotos != null and !#lists.isEmpty(post.fotos)}"
+                   th:src="@{|/uploads/${post.fotoUrl}|}"
+                   th:alt="${post.titulo}">
+            </div>
+
+            <div class="blog-card-body">
+              <div class="blog-meta" th:text="${#temporals.format(post.dataPublicacao, 'dd/MM/yyyy')}">01/01/2026</div>
+              <h3 th:text="${post.titulo}">Título da postagem</h3>
+
+              <div class="blog-content" th:utext="${post.conteudoHtml}">Conteúdo da postagem</div>
+
+              <span class="blog-card-read-more">Abrir postagem →</span>
+            </div>
+          </a>
         </article>
       </div>
     </div>

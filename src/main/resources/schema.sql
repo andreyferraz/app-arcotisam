@@ -60,10 +60,11 @@ CREATE TABLE IF NOT EXISTS blog_post_fotos (
     arquivo_url TEXT NOT NULL,
     capa INTEGER NOT NULL DEFAULT 0,
     ordem INTEGER NOT NULL DEFAULT 0,
-    CONSTRAINT fk_blog_post_fotos_post FOREIGN KEY (blog_post_id) REFERENCES blog_posts(id) ON DELETE CASCADE
+    FOREIGN KEY (blog_post_id) REFERENCES blog_posts(id) ON DELETE CASCADE
 );
 
-CREATE INDEX IF NOT EXISTS ix_blog_post_fotos_blog_post_id ON blog_post_fotos(blog_post_id);
+CREATE INDEX IF NOT EXISTS idx_blog_post_fotos_post
+ON blog_post_fotos(blog_post_id);
 
 CREATE TABLE IF NOT EXISTS galeria_fotos (
     id TEXT PRIMARY KEY,

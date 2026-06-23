@@ -1,5 +1,6 @@
 package com.arcotisam.app.dto;
 
+import java.util.List;
 import java.util.UUID;
 
 import lombok.AllArgsConstructor;
@@ -16,5 +17,6 @@ public class BlogPostAdminForm {
     private String dataPublicacao;
     private String fotoUrlAtual;
     private String fotoCapaAtual;
+    private List<String> fotosAtuais;
     private String conteudoHtml;
 }

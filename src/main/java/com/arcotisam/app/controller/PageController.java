@@ -14,11 +14,14 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import com.arcotisam.app.dto.BlogPostItem;
 import com.arcotisam.app.model.Artesao;
 import com.arcotisam.app.model.Produto;
 import com.arcotisam.app.repository.ArtesaoRepository;
 import com.arcotisam.app.service.AdminMasterService;
 import com.arcotisam.app.service.ProdutoService;
+
+import jakarta.servlet.http.HttpServletRequest;
 
 @Controller
 public class PageController {
@@ -27,13 +30,14 @@ public class PageController {
     private final ArtesaoRepository artesaoRepository;
     private final AdminMasterService adminMasterService;
 
-    public PageController(ProdutoService produtoService, ArtesaoRepository artesaoRepository, AdminMasterService adminMasterService) {
+    public PageController(ProdutoService produtoService, ArtesaoRepository artesaoRepository,
+            AdminMasterService adminMasterService) {
         this.produtoService = produtoService;
         this.artesaoRepository = artesaoRepository;
         this.adminMasterService = adminMasterService;
     }
 
-    @GetMapping({"/", "/home"})
+    @GetMapping({ "/", "/home" })
     public String home(Model model) {
         model.addAttribute("ultimosProdutos", produtoService.listarUltimosCadastrados(3));
         model.addAttribute("artesaosAleatorios", listarArtesaosAleatorios(3));
@@ -53,6 +57,22 @@ public class PageController {
         return "blog";
     }
 
+    @GetMapping("/blog/{id}")
+    public String abrirPostagemBlog(
+            @PathVariable UUID id,
+            Model model,
+            HttpServletRequest request) {
+
+        BlogPostItem post = adminMasterService.carregarBlogPostPorId(id);
+
+        String postUrl = request.getRequestURL().toString();
+
+        model.addAttribute("post", post);
+        model.addAttribute("postUrl", postUrl);
+
+        return "blog-detalhe";
+    }
+
     @GetMapping("/loja")
     public String loja(@RequestParam(value = "artesaoId", required = false) UUID artesaoId, Model model) {
         List<Produto> produtos;
@@ -63,7 +83,7 @@ public class PageController {
         }
 
         List<Artesao> artesaos = StreamSupport.stream(artesaoRepository.findAll().spliterator(), false)
-            .toList();
+                .toList();
 
         model.addAttribute("produtos", produtos);
         model.addAttribute("artesaos", artesaos);
@@ -101,8 +121,8 @@ public class PageController {
 
     private List<Artesao> listarArtesaosAleatorios(int limite) {
         List<Artesao> artesaos = StreamSupport.stream(artesaoRepository.findAll().spliterator(), false)
-            .filter(artesao -> artesao.getId() != null)
-            .toList();
+                .filter(artesao -> artesao.getId() != null)
+                .toList();
 
         if (artesaos.isEmpty()) {
             return artesaos;

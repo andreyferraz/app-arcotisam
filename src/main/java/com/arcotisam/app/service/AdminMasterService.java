@@ -154,15 +154,13 @@ public class AdminMasterService {
                 (rs, rowNum) -> new GaleriaExibicaoItem(
                         UUID.fromString(rs.getString(CAMPO_ID)),
                         rs.getString(CAMPO_TITULO),
-                        new ArrayList<>())
-        );
+                        new ArrayList<>()));
 
         for (GaleriaExibicaoItem galeria : galerias) {
             List<String> fotos = namedParameterJdbcTemplate.query(
                     "SELECT arquivo_url FROM galeria_fotos WHERE galeria_id = :galeriaId ORDER BY ordem ASC, rowid ASC",
                     new MapSqlParameterSource().addValue(CAMPO_GALERIA_ID, galeria.getId().toString()),
-                    (rs, rowNum) -> rs.getString(CAMPO_ARQUIVO_URL_DB)
-            );
+                    (rs, rowNum) -> rs.getString(CAMPO_ARQUIVO_URL_DB));
 
             galeria.setFotos(fotos);
         }
@@ -191,10 +189,9 @@ public class AdminMasterService {
                         LocalDate.parse(rs.getString(CAMPO_DATA_PUBLICACAO_DB)),
                         rs.getString(CAMPO_FOTO_URL_DB),
                         new ArrayList<>(),
-                        rs.getString(CAMPO_CONTEUDO_HTML_DB))
-        );
+                        rs.getString(CAMPO_CONTEUDO_HTML_DB)));
 
-        posts.forEach(post -> post.setFotos(carregarFotosBlogPost(post.getId())));
+        posts.forEach(post -> post.setFotos(carregarFotosBlogPostComFallback(post.getId(), post.getFotoUrl())));
         return posts;
     }
 
@@ -208,11 +205,14 @@ public class AdminMasterService {
         BlogPostItem blogPost = buscarBlogPostPorId(id)
                 .orElseThrow(() -> new IllegalArgumentException(POSTAGEM_NAO_ENCONTRADA));
 
+        List<String> fotos = carregarFotosBlogPostComFallback(blogPost.getId(), blogPost.getFotoUrl());
+
         form.setId(blogPost.getId());
         form.setTitulo(blogPost.getTitulo());
         form.setDataPublicacao(blogPost.getDataPublicacao() != null ? blogPost.getDataPublicacao().toString() : null);
         form.setFotoUrlAtual(blogPost.getFotoUrl());
         form.setFotoCapaAtual(blogPost.getFotoUrl());
+        form.setFotosAtuais(fotos);
         form.setConteudoHtml(blogPost.getConteudoHtml());
 
         return form;
@@ -220,58 +220,15 @@ public class AdminMasterService {
 
     @Transactional
     public void salvarBlogPost(String titulo, String dataPublicacao, MultipartFile foto, String conteudoHtml) {
-        persistirNovoBlogPost(titulo, dataPublicacao, foto, null, conteudoHtml);
-    }
-
-    private void persistirNovoBlogPost(
-            String titulo,
-            String dataPublicacao,
-            MultipartFile foto,
-            MultipartFile[] fotosExtras,
-            String conteudoHtml) {
-
-        ValidationUtils.validarCampoStringObrigatorio(titulo, CAMPO_TITULO);
-        ValidationUtils.validarCampoStringObrigatorio(dataPublicacao, CAMPO_DATA_PUBLICACAO);
-        ValidationUtils.validarCampoStringObrigatorio(conteudoHtml, CAMPO_CONTEUDO_HTML);
-
-        String conteudoLimpado = conteudoHtml.trim();
-
-        if (conteudoLimpado.replaceAll("<[^>]*>", "").isBlank()) {
-            throw new IllegalArgumentException("Escreva o conteúdo da postagem.");
-        }
-
-        LocalDate data;
-        try {
-            data = LocalDate.parse(dataPublicacao.trim());
-        } catch (RuntimeException ex) {
-            throw new IllegalArgumentException("Data de publicação inválida.");
-        }
-
-        if (foto == null || foto.isEmpty()) {
-            throw new IllegalArgumentException("Adicione uma foto para a postagem.");
-        }
-
-        String fotoUrl = fileUploadService.salvarImagem(foto);
-        List<MultipartFile> fotosValidas = filtrarFotosValidas(fotosExtras);
-        UUID blogPostId = UUID.randomUUID();
-
-        try {
-            namedParameterJdbcTemplate.update(
-                    "INSERT INTO blog_posts (id, titulo, data_publicacao, foto_url, conteudo_html) " +
-                            "VALUES (:id, :titulo, :dataPublicacao, :fotoUrl, :conteudoHtml)",
-                    new MapSqlParameterSource()
-                            .addValue(CAMPO_ID, blogPostId.toString())
-                            .addValue(CAMPO_TITULO, titulo.trim())
-                            .addValue(CAMPO_DATA_PUBLICACAO, data.toString())
-                            .addValue(CAMPO_FOTO_URL, fotoUrl)
-                            .addValue(CAMPO_CONTEUDO_HTML, conteudoLimpado)
-            );
-
-            salvarFotosBlogPost(blogPostId, fotosValidas);
-        } catch (RuntimeException ex) {
-            removerImagemIgnorandoFalhas(fotoUrl);
-            throw ex;
-        }
+        salvarBlogPost(
+                null,
+                titulo,
+                dataPublicacao,
+                foto != null && !foto.isEmpty() ? new MultipartFile[] { foto } : null,
+                conteudoHtml,
+                null,
+                foto != null && !foto.isEmpty() ? 0 : null,
+                null);
     }
 
     @Transactional
@@ -283,59 +240,231 @@ public class AdminMasterService {
             String conteudoHtml,
             String fotoUrlAtual) {
 
-        if (id == null) {
-            persistirNovoBlogPost(titulo, dataPublicacao, foto, null, conteudoHtml);
-            return;
-        }
+        boolean novaFotoEnviada = foto != null && !foto.isEmpty();
+
+        salvarBlogPost(
+                id,
+                titulo,
+                dataPublicacao,
+                novaFotoEnviada ? new MultipartFile[] { foto } : null,
+                conteudoHtml,
+                fotoUrlAtual,
+                novaFotoEnviada ? 0 : null,
+                novaFotoEnviada && fotoUrlAtual != null && !fotoUrlAtual.isBlank()
+                        ? List.of(fotoUrlAtual)
+                        : null);
+    }
+
+    @Transactional
+    public void salvarBlogPost(
+            UUID id,
+            String titulo,
+            String dataPublicacao,
+            MultipartFile[] fotos,
+            String conteudoHtml,
+            String fotoCapaAtual,
+            Integer fotoCapaNovaIndex,
+            List<String> fotosRemover) {
 
         ValidationUtils.validarCampoStringObrigatorio(titulo, CAMPO_TITULO);
         ValidationUtils.validarCampoStringObrigatorio(dataPublicacao, CAMPO_DATA_PUBLICACAO);
         ValidationUtils.validarCampoStringObrigatorio(conteudoHtml, CAMPO_CONTEUDO_HTML);
 
-        BlogPostItem existente = buscarBlogPostPorId(id)
-                .orElseThrow(() -> new IllegalArgumentException(POSTAGEM_NAO_ENCONTRADA));
+        String conteudoLimpado = limparConteudoBlogPost(conteudoHtml);
+        LocalDate data = parseDataPublicacao(dataPublicacao);
+        List<MultipartFile> fotosValidas = filtrarFotosValidas(fotos);
+        List<String> fotosParaRemover = filtrarFotosParaRemover(fotosRemover);
 
+        if (id == null) {
+            criarBlogPostComFotos(
+                    titulo,
+                    data,
+                    fotosValidas,
+                    conteudoLimpado,
+                    fotoCapaNovaIndex);
+            return;
+        }
+
+        atualizarBlogPostComFotos(
+                id,
+                titulo,
+                data,
+                fotosValidas,
+                conteudoLimpado,
+                fotoCapaAtual,
+                fotoCapaNovaIndex,
+                fotosParaRemover);
+    }
+
+    private String limparConteudoBlogPost(String conteudoHtml) {
         String conteudoLimpado = conteudoHtml.trim();
 
         if (conteudoLimpado.replaceAll("<[^>]*>", "").isBlank()) {
             throw new IllegalArgumentException("Escreva o conteúdo da postagem.");
         }
 
-        LocalDate data;
+        return conteudoLimpado;
+    }
+
+    private LocalDate parseDataPublicacao(String dataPublicacao) {
         try {
-            data = LocalDate.parse(dataPublicacao.trim());
+            return LocalDate.parse(dataPublicacao.trim());
         } catch (RuntimeException ex) {
             throw new IllegalArgumentException("Data de publicação inválida.");
         }
+    }
 
-        String fotoUrl = existente.getFotoUrl();
-        boolean novaFotoEnviada = foto != null && !foto.isEmpty();
+    private void criarBlogPostComFotos(
+            String titulo,
+            LocalDate data,
+            List<MultipartFile> fotosValidas,
+            String conteudoLimpado,
+            Integer fotoCapaNovaIndex) {
 
-        if (novaFotoEnviada) {
-            fotoUrl = fileUploadService.salvarImagem(foto);
+        if (fotosValidas.isEmpty()) {
+            throw new IllegalArgumentException("Adicione ao menos uma foto para a postagem.");
         }
 
+        UUID blogPostId = UUID.randomUUID();
+        List<String> arquivosSalvos = new ArrayList<>();
+
         try {
+            for (MultipartFile foto : fotosValidas) {
+                arquivosSalvos.add(fileUploadService.salvarImagem(foto));
+            }
+
+            String fotoCapa = resolverFotoCapaNova(arquivosSalvos, fotoCapaNovaIndex);
+
             namedParameterJdbcTemplate.update(
-                    "UPDATE blog_posts SET titulo = :titulo, data_publicacao = :dataPublicacao, foto_url = :fotoUrl, conteudo_html = :conteudoHtml WHERE id = :id",
+                    "INSERT INTO blog_posts (id, titulo, data_publicacao, foto_url, conteudo_html) " +
+                            "VALUES (:id, :titulo, :dataPublicacao, :fotoUrl, :conteudoHtml)",
                     new MapSqlParameterSource()
-                            .addValue(CAMPO_ID, id.toString())
+                            .addValue(CAMPO_ID, blogPostId.toString())
                             .addValue(CAMPO_TITULO, titulo.trim())
                             .addValue(CAMPO_DATA_PUBLICACAO, data.toString())
-                            .addValue(CAMPO_FOTO_URL, fotoUrl)
-                            .addValue(CAMPO_CONTEUDO_HTML, conteudoLimpado)
-            );
+                            .addValue(CAMPO_FOTO_URL, fotoCapa)
+                            .addValue(CAMPO_CONTEUDO_HTML, conteudoLimpado));
 
-            if (novaFotoEnviada && fotoUrlAtual != null && !fotoUrlAtual.isBlank() && !fotoUrlAtual.equals(fotoUrl)) {
-                removerImagemIgnorandoFalhas(fotoUrlAtual);
-            }
+            salvarFotosBlogPost(blogPostId, arquivosSalvos, fotoCapa, 0);
         } catch (RuntimeException ex) {
-            if (novaFotoEnviada && fotoUrl != null && !fotoUrl.equals(existente.getFotoUrl())) {
-                removerImagemIgnorandoFalhas(fotoUrl);
+            for (String arquivoUrl : arquivosSalvos) {
+                removerImagemIgnorandoFalhas(arquivoUrl);
             }
 
             throw ex;
         }
+    }
+
+    private void atualizarBlogPostComFotos(
+            UUID id,
+            String titulo,
+            LocalDate data,
+            List<MultipartFile> fotosValidas,
+            String conteudoLimpado,
+            String fotoCapaAtual,
+            Integer fotoCapaNovaIndex,
+            List<String> fotosParaRemover) {
+
+        BlogPostItem existente = buscarBlogPostPorId(id)
+                .orElseThrow(() -> new IllegalArgumentException(POSTAGEM_NAO_ENCONTRADA));
+
+        List<String> fotosBanco = carregarFotosBlogPost(id);
+        List<String> fotosAtuais = new ArrayList<>(fotosBanco);
+
+        if (fotosAtuais.isEmpty() && existente.getFotoUrl() != null && !existente.getFotoUrl().isBlank()) {
+            fotosAtuais.add(existente.getFotoUrl());
+        }
+
+        List<String> novasFotos = new ArrayList<>();
+
+        try {
+            for (MultipartFile foto : fotosValidas) {
+                novasFotos.add(fileUploadService.salvarImagem(foto));
+            }
+
+            fotosAtuais.removeIf(fotosParaRemover::contains);
+
+            List<String> fotosDisponiveis = new ArrayList<>();
+            fotosDisponiveis.addAll(fotosAtuais);
+            fotosDisponiveis.addAll(novasFotos);
+
+            if (fotosDisponiveis.isEmpty()) {
+                throw new IllegalArgumentException("A postagem precisa ter ao menos uma foto.");
+            }
+
+            String fotoCapa = resolverFotoCapaEdicao(
+                    fotosDisponiveis,
+                    novasFotos,
+                    fotoCapaAtual,
+                    fotoCapaNovaIndex,
+                    existente.getFotoUrl());
+
+            namedParameterJdbcTemplate.update(
+                    "UPDATE blog_posts " +
+                            "SET titulo = :titulo, data_publicacao = :dataPublicacao, foto_url = :fotoUrl, conteudo_html = :conteudoHtml " +
+                            "WHERE id = :id",
+                    new MapSqlParameterSource()
+                            .addValue(CAMPO_ID, id.toString())
+                            .addValue(CAMPO_TITULO, titulo.trim())
+                            .addValue(CAMPO_DATA_PUBLICACAO, data.toString())
+                            .addValue(CAMPO_FOTO_URL, fotoCapa)
+                            .addValue(CAMPO_CONTEUDO_HTML, conteudoLimpado));
+
+            removerFotosBlogPostDoBanco(id, fotosParaRemover);
+
+            boolean precisaSincronizarFotoLegada = fotosBanco.isEmpty()
+                    && existente.getFotoUrl() != null
+                    && !existente.getFotoUrl().isBlank()
+                    && fotosDisponiveis.contains(existente.getFotoUrl());
+
+            if (precisaSincronizarFotoLegada) {
+                salvarFotosBlogPost(id, List.of(existente.getFotoUrl()), fotoCapa, 0);
+            }
+
+            int ordemInicial = contarFotosBlogPost(id);
+            salvarFotosBlogPost(id, novasFotos, fotoCapa, ordemInicial);
+            atualizarCapaFotosBlogPost(id, fotoCapa);
+
+            for (String fotoRemovida : fotosParaRemover) {
+                removerImagemIgnorandoFalhas(fotoRemovida);
+            }
+        } catch (RuntimeException ex) {
+            for (String novaFoto : novasFotos) {
+                removerImagemIgnorandoFalhas(novaFoto);
+            }
+
+            throw ex;
+        }
+    }
+
+    private String resolverFotoCapaNova(List<String> novasFotos, Integer fotoCapaNovaIndex) {
+        if (fotoCapaNovaIndex != null && fotoCapaNovaIndex >= 0 && fotoCapaNovaIndex < novasFotos.size()) {
+            return novasFotos.get(fotoCapaNovaIndex);
+        }
+
+        return novasFotos.get(0);
+    }
+
+    private String resolverFotoCapaEdicao(
+            List<String> fotosDisponiveis,
+            List<String> novasFotos,
+            String fotoCapaAtual,
+            Integer fotoCapaNovaIndex,
+            String fotoCapaAnterior) {
+
+        if (fotoCapaNovaIndex != null && fotoCapaNovaIndex >= 0 && fotoCapaNovaIndex < novasFotos.size()) {
+            return novasFotos.get(fotoCapaNovaIndex);
+        }
+
+        if (fotoCapaAtual != null && fotosDisponiveis.contains(fotoCapaAtual)) {
+            return fotoCapaAtual;
+        }
+
+        if (fotoCapaAnterior != null && fotosDisponiveis.contains(fotoCapaAnterior)) {
+            return fotoCapaAnterior;
+        }
+
+        return fotosDisponiveis.get(0);
     }
 
     @Transactional
@@ -345,42 +474,61 @@ public class AdminMasterService {
         BlogPostItem existente = buscarBlogPostPorId(id)
                 .orElseThrow(() -> new IllegalArgumentException(POSTAGEM_NAO_ENCONTRADA));
 
+        LinkedHashSet<String> imagensParaRemover = new LinkedHashSet<>(carregarFotosBlogPost(id));
+
+        if (existente.getFotoUrl() != null && !existente.getFotoUrl().isBlank()) {
+            imagensParaRemover.add(existente.getFotoUrl());
+        }
+
+        namedParameterJdbcTemplate.update(
+                "DELETE FROM blog_post_fotos WHERE blog_post_id = :blogPostId",
+                new MapSqlParameterSource().addValue(CAMPO_BLOG_POST_ID, id.toString()));
+
         namedParameterJdbcTemplate.update(
                 "DELETE FROM blog_posts WHERE id = :id",
-                new MapSqlParameterSource().addValue(CAMPO_ID, id.toString())
-        );
+                new MapSqlParameterSource().addValue(CAMPO_ID, id.toString()));
 
-        removerImagemIgnorandoFalhas(existente.getFotoUrl());
-        removerFotosBlogPost(id);
+        for (String imagem : imagensParaRemover) {
+            removerImagemIgnorandoFalhas(imagem);
+        }
     }
 
     public BlogPostItem carregarBlogPostPorId(UUID id) {
         return buscarBlogPostPorId(id)
                 .map(post -> {
-                    post.setFotos(carregarFotosBlogPost(post.getId()));
+                    post.setFotos(carregarFotosBlogPostComFallback(post.getId(), post.getFotoUrl()));
                     return post;
                 })
                 .orElseThrow(() -> new IllegalArgumentException(POSTAGEM_NAO_ENCONTRADA));
     }
 
     private List<MultipartFile> filtrarFotosValidas(MultipartFile[] fotos) {
-        return fotos == null ? List.of() : Arrays.stream(fotos)
-                .filter(foto -> foto != null && !foto.isEmpty())
-                .toList();
+        return fotos == null ? List.of()
+                : Arrays.stream(fotos)
+                        .filter(foto -> foto != null && !foto.isEmpty())
+                        .toList();
     }
 
     private List<String> carregarFotosBlogPost(UUID blogPostId) {
         return namedParameterJdbcTemplate.query(
                 "SELECT arquivo_url FROM blog_post_fotos WHERE blog_post_id = :blogPostId ORDER BY capa DESC, ordem ASC, rowid ASC",
                 new MapSqlParameterSource().addValue(CAMPO_BLOG_POST_ID, blogPostId.toString()),
-                (rs, rowNum) -> rs.getString(CAMPO_ARQUIVO_URL_DB)
-        );
+                (rs, rowNum) -> rs.getString(CAMPO_ARQUIVO_URL_DB));
     }
 
-    private void salvarFotosBlogPost(UUID blogPostId, List<MultipartFile> fotos) {
-        for (int index = 0; index < fotos.size(); index++) {
-            MultipartFile foto = fotos.get(index);
-            String arquivoUrl = fileUploadService.salvarImagem(foto);
+    private List<String> carregarFotosBlogPostComFallback(UUID blogPostId, String fotoUrlCapa) {
+        List<String> fotos = new ArrayList<>(carregarFotosBlogPost(blogPostId));
+
+        if (fotos.isEmpty() && fotoUrlCapa != null && !fotoUrlCapa.isBlank()) {
+            fotos.add(fotoUrlCapa);
+        }
+
+        return fotos;
+    }
+
+    private void salvarFotosBlogPost(UUID blogPostId, List<String> arquivos, String fotoCapa, int ordemInicial) {
+        for (int index = 0; index < arquivos.size(); index++) {
+            String arquivoUrl = arquivos.get(index);
 
             namedParameterJdbcTemplate.update(
                     "INSERT INTO blog_post_fotos (id, blog_post_id, arquivo_url, capa, ordem) " +
@@ -389,22 +537,38 @@ public class AdminMasterService {
                             .addValue(CAMPO_ID, UUID.randomUUID().toString())
                             .addValue(CAMPO_BLOG_POST_ID, blogPostId.toString())
                             .addValue(CAMPO_ARQUIVO_URL, arquivoUrl)
-                            .addValue("capa", 0)
-                            .addValue("ordem", index)
-            );
+                            .addValue("capa", arquivoUrl.equals(fotoCapa) ? 1 : 0)
+                            .addValue("ordem", ordemInicial + index));
         }
     }
 
-    private void removerFotosBlogPost(UUID blogPostId) {
-        List<String> fotos = namedParameterJdbcTemplate.query(
-                "SELECT arquivo_url FROM blog_post_fotos WHERE blog_post_id = :blogPostId",
-                new MapSqlParameterSource().addValue(CAMPO_BLOG_POST_ID, blogPostId.toString()),
-                (rs, rowNum) -> rs.getString(CAMPO_ARQUIVO_URL_DB)
-        );
+    private void atualizarCapaFotosBlogPost(UUID blogPostId, String fotoCapa) {
+        namedParameterJdbcTemplate.update(
+                "UPDATE blog_post_fotos " +
+                        "SET capa = CASE WHEN arquivo_url = :fotoCapa THEN 1 ELSE 0 END " +
+                        "WHERE blog_post_id = :blogPostId",
+                new MapSqlParameterSource()
+                        .addValue(CAMPO_BLOG_POST_ID, blogPostId.toString())
+                        .addValue("fotoCapa", fotoCapa));
+    }
 
-        for (String foto : fotos) {
-            removerImagemIgnorandoFalhas(foto);
+    private void removerFotosBlogPostDoBanco(UUID blogPostId, List<String> fotosParaRemover) {
+        for (String fotoRemovida : fotosParaRemover) {
+            namedParameterJdbcTemplate.update(
+                    "DELETE FROM blog_post_fotos WHERE blog_post_id = :blogPostId AND arquivo_url = :arquivoUrl",
+                    new MapSqlParameterSource()
+                            .addValue(CAMPO_BLOG_POST_ID, blogPostId.toString())
+                            .addValue(CAMPO_ARQUIVO_URL, fotoRemovida));
         }
+    }
+
+    private int contarFotosBlogPost(UUID blogPostId) {
+        Integer total = namedParameterJdbcTemplate.queryForObject(
+                "SELECT COUNT(1) FROM blog_post_fotos WHERE blog_post_id = :blogPostId",
+                new MapSqlParameterSource().addValue(CAMPO_BLOG_POST_ID, blogPostId.toString()),
+                Integer.class);
+
+        return total != null ? total : 0;
     }
 
     public String obterFotoAssociacaoUrl() {
@@ -424,8 +588,7 @@ public class AdminMasterService {
                             "ON CONFLICT(chave) DO UPDATE SET valor = excluded.valor",
                     new MapSqlParameterSource()
                             .addValue(CAMPO_CHAVE, CONFIG_FOTO_ASSOCIACAO)
-                            .addValue(CAMPO_VALOR, novaFoto)
-            );
+                            .addValue(CAMPO_VALOR, novaFoto));
 
             if (fotoAtual != null && !fotoAtual.isBlank() && !fotoAtual.equals(novaFoto)) {
                 removerImagemIgnorandoFalhas(fotoAtual);
@@ -478,8 +641,7 @@ public class AdminMasterService {
             if (!editando) {
                 namedParameterJdbcTemplate.update(
                         "DELETE FROM galerias WHERE id = :id",
-                        new MapSqlParameterSource().addValue(CAMPO_ID, idFinal.toString())
-                );
+                        new MapSqlParameterSource().addValue(CAMPO_ID, idFinal.toString()));
             }
 
             throw ex;
@@ -492,8 +654,7 @@ public class AdminMasterService {
                     "UPDATE galerias SET titulo = :titulo WHERE id = :id",
                     new MapSqlParameterSource()
                             .addValue(CAMPO_ID, galeriaId.toString())
-                            .addValue(CAMPO_TITULO, titulo.trim())
-            );
+                            .addValue(CAMPO_TITULO, titulo.trim()));
 
             return;
         }
@@ -502,8 +663,7 @@ public class AdminMasterService {
                 "INSERT INTO galerias (id, titulo) VALUES (:id, :titulo)",
                 new MapSqlParameterSource()
                         .addValue(CAMPO_ID, galeriaId.toString())
-                        .addValue(CAMPO_TITULO, titulo.trim())
-        );
+                        .addValue(CAMPO_TITULO, titulo.trim()));
     }
 
     private void removerFotosDaGaleria(UUID galeriaId, List<String> fotosParaRemover) {
@@ -512,17 +672,17 @@ public class AdminMasterService {
                     "DELETE FROM galeria_fotos WHERE galeria_id = :galeriaId AND arquivo_url = :arquivoUrl",
                     new MapSqlParameterSource()
                             .addValue(CAMPO_GALERIA_ID, galeriaId.toString())
-                            .addValue(CAMPO_ARQUIVO_URL, fotoRemovida)
-            );
+                            .addValue(CAMPO_ARQUIVO_URL, fotoRemovida));
 
             removerImagemIgnorandoFalhas(fotoRemovida);
         }
     }
 
     private List<String> filtrarFotosParaRemover(List<String> fotosRemover) {
-        return fotosRemover == null ? List.of() : fotosRemover.stream()
-                .filter(foto -> foto != null && !foto.isBlank())
-                .toList();
+        return fotosRemover == null ? List.of()
+                : fotosRemover.stream()
+                        .filter(foto -> foto != null && !foto.isBlank())
+                        .toList();
     }
 
     private void adicionarFotosNaGaleria(
@@ -542,8 +702,7 @@ public class AdminMasterService {
                             .addValue(CAMPO_ID, UUID.randomUUID().toString())
                             .addValue(CAMPO_GALERIA_ID, galeriaId.toString())
                             .addValue(CAMPO_ARQUIVO_URL, arquivoUrl)
-                            .addValue("ordem", index)
-            );
+                            .addValue("ordem", index));
         }
     }
 
@@ -566,8 +725,7 @@ public class AdminMasterService {
         List<String> fotos = namedParameterJdbcTemplate.query(
                 "SELECT arquivo_url FROM galeria_fotos WHERE galeria_id = :galeriaId ORDER BY ordem ASC, rowid ASC",
                 new MapSqlParameterSource().addValue(CAMPO_GALERIA_ID, galeriaId.toString()),
-                (rs, rowNum) -> rs.getString(CAMPO_ARQUIVO_URL_DB)
-        );
+                (rs, rowNum) -> rs.getString(CAMPO_ARQUIVO_URL_DB));
 
         for (String foto : fotos) {
             if (foto != null && !foto.isBlank()) {
@@ -581,8 +739,7 @@ public class AdminMasterService {
 
         namedParameterJdbcTemplate.update(
                 "DELETE FROM galerias WHERE id = :id",
-                new MapSqlParameterSource().addValue(CAMPO_ID, galeriaId.toString())
-        );
+                new MapSqlParameterSource().addValue(CAMPO_ID, galeriaId.toString()));
     }
 
     @Transactional
@@ -603,15 +760,13 @@ public class AdminMasterService {
         namedParameterJdbcTemplate.update(
                 "DELETE FROM movimentacoes WHERE artesao_id = :artesaoId",
                 new MapSqlParameterSource()
-                        .addValue(CAMPO_ARTESAO_ID, requireId(artesao.getId(), ARTESAO_NAO_ENCONTRADO))
-        );
+                        .addValue(CAMPO_ARTESAO_ID, requireId(artesao.getId(), ARTESAO_NAO_ENCONTRADO)));
 
         List<String> imagensProdutos = namedParameterJdbcTemplate.query(
                 "SELECT imagem_url FROM produtos WHERE artesao_id = :artesaoId",
                 new MapSqlParameterSource()
                         .addValue(CAMPO_ARTESAO_ID, requireId(artesao.getId(), ARTESAO_NAO_ENCONTRADO)),
-                (rs, rowNum) -> rs.getString("imagem_url")
-        );
+                (rs, rowNum) -> rs.getString("imagem_url"));
 
         for (String imagemUrl : imagensProdutos) {
             if (imagemUrl != null && !imagemUrl.isBlank()) {
@@ -626,22 +781,20 @@ public class AdminMasterService {
         namedParameterJdbcTemplate.update(
                 "DELETE FROM produtos WHERE artesao_id = :artesaoId",
                 new MapSqlParameterSource()
-                        .addValue(CAMPO_ARTESAO_ID, requireId(artesao.getId(), ARTESAO_NAO_ENCONTRADO))
-        );
+                        .addValue(CAMPO_ARTESAO_ID, requireId(artesao.getId(), ARTESAO_NAO_ENCONTRADO)));
 
         if (artesao.getUsuarioId() != null) {
             namedParameterJdbcTemplate.update(
                     "DELETE FROM usuarios WHERE id = :usuarioId",
                     new MapSqlParameterSource()
-                            .addValue(CAMPO_USUARIO_ID, requireId(artesao.getUsuarioId(), ARTESAO_SEM_USUARIO_VINCULADO))
-            );
+                            .addValue(CAMPO_USUARIO_ID,
+                                    requireId(artesao.getUsuarioId(), ARTESAO_SEM_USUARIO_VINCULADO)));
         }
 
         namedParameterJdbcTemplate.update(
                 "DELETE FROM artesaos WHERE id = :id",
                 new MapSqlParameterSource()
-                        .addValue(CAMPO_ID, requireId(artesao.getId(), ARTESAO_NAO_ENCONTRADO))
-        );
+                        .addValue(CAMPO_ID, requireId(artesao.getId(), ARTESAO_NAO_ENCONTRADO)));
     }
 
     private void criarArtesao(ArtesaoAdminForm form, MultipartFile foto) {
@@ -669,8 +822,7 @@ public class AdminMasterService {
                 fotoUrl,
                 usuario.getId(),
                 new LinkedHashSet<>(),
-                true
-        );
+                true);
 
         usuarioService.salvarNovoUsuario(usuario);
 
@@ -683,8 +835,7 @@ public class AdminMasterService {
                         .addValue("descricao", artesao.getDescricao())
                         .addValue("whatsapp", artesao.getWhatsapp())
                         .addValue(CAMPO_FOTO_URL, artesao.getFotoUrl())
-                        .addValue(CAMPO_USUARIO_ID, requireId(artesao.getUsuarioId(), ARTESAO_SEM_USUARIO_VINCULADO))
-        );
+                        .addValue(CAMPO_USUARIO_ID, requireId(artesao.getUsuarioId(), ARTESAO_SEM_USUARIO_VINCULADO)));
     }
 
     private void atualizarArtesao(ArtesaoAdminForm form, MultipartFile foto) {
@@ -749,8 +900,7 @@ public class AdminMasterService {
 
         namedParameterJdbcTemplate.update(
                 "UPDATE usuarios SET username = :username, password = :password, foto_url = :fotoUrl, role = :role WHERE id = :id",
-                userParams
-        );
+                userParams);
 
         namedParameterJdbcTemplate.update(
                 "UPDATE artesaos SET nome = :nome, descricao = :descricao, whatsapp = :whatsapp, " +
@@ -761,8 +911,7 @@ public class AdminMasterService {
                         .addValue("descricao", artesao.getDescricao())
                         .addValue("whatsapp", artesao.getWhatsapp())
                         .addValue(CAMPO_FOTO_URL, artesao.getFotoUrl())
-                        .addValue(CAMPO_USUARIO_ID, requireId(artesao.getUsuarioId(), ARTESAO_SEM_USUARIO_VINCULADO))
-        );
+                        .addValue(CAMPO_USUARIO_ID, requireId(artesao.getUsuarioId(), ARTESAO_SEM_USUARIO_VINCULADO)));
     }
 
     private String salvarFotoSeExistir(MultipartFile foto) {
@@ -792,8 +941,7 @@ public class AdminMasterService {
                 artesao.getWhatsapp(),
                 artesao.getFotoUrl(),
                 username,
-                totalProdutosPorArtesao.getOrDefault(artesao.getId(), 0)
-        );
+                totalProdutosPorArtesao.getOrDefault(artesao.getId(), 0));
     }
 
     private Map<UUID, Integer> contarProdutosPorArtesao() {
@@ -838,8 +986,7 @@ public class AdminMasterService {
                         LocalDate.parse(rs.getString(CAMPO_DATA_PUBLICACAO_DB)),
                         rs.getString(CAMPO_FOTO_URL_DB),
                         new ArrayList<>(),
-                        rs.getString(CAMPO_CONTEUDO_HTML_DB))
-        );
+                        rs.getString(CAMPO_CONTEUDO_HTML_DB)));
 
         if (posts.isEmpty()) {
             return Optional.empty();
@@ -852,8 +999,7 @@ public class AdminMasterService {
         List<String> valores = namedParameterJdbcTemplate.query(
                 "SELECT valor FROM configuracoes_site WHERE chave = :chave",
                 new MapSqlParameterSource().addValue(CAMPO_CHAVE, chave),
-                (rs, rowNum) -> rs.getString(CAMPO_VALOR)
-        );
+                (rs, rowNum) -> rs.getString(CAMPO_VALOR));
 
         if (valores.isEmpty()) {
             return Optional.empty();

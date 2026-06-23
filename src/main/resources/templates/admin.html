@@ -51,7 +51,7 @@
     </div>
 
     <div class="container admin-grid" style="margin-top: 0;">
-      <article class="admin-panel admin-form-panel" id="blog-editor-panel">
+      <article class="admin-panel admin-form-panel" id="foto-associacao-panel">
         <div class="panel-head">
           <div>
             <span class="eyebrow">Home</span>
@@ -94,7 +94,7 @@
     </div>
 
     <div class="container admin-grid admin-blog-grid">
-      <article class="admin-panel admin-form-panel">
+      <article class="admin-panel admin-form-panel" id="blog-editor-panel">
         <div class="panel-head">
           <div>
             <span class="eyebrow">Nova postagem</span>
@@ -117,12 +117,37 @@
           </label>
 
           <label class="admin-upload">
-            <span th:text="${editandoBlogPost ? 'Trocar foto da postagem' : 'Foto da postagem'}">Foto da postagem</span>
-            <input type="file" name="foto" accept="image/*" th:required="${!editandoBlogPost}">
+            <span th:text="${editandoBlogPost ? 'Adicionar novas fotos à postagem' : 'Fotos da postagem'}">Fotos da postagem</span>
+            <input id="blogFotosInput" type="file" name="fotos" accept="image/*" multiple th:required="${!editandoBlogPost}">
           </label>
 
-          <div class="admin-photo-preview" th:if="${blogPostForm.fotoUrlAtual != null and !#strings.isEmpty(blogPostForm.fotoUrlAtual)}">
-            <img th:src="@{|/uploads/${blogPostForm.fotoUrlAtual}|}" th:alt="${blogPostForm.titulo}">
+          <p class="admin-note" th:text="${editandoBlogPost ? 'Você pode manter as fotos atuais, remover imagens antigas e adicionar novas fotos. Marque uma imagem como capa.' : 'Selecione uma ou mais fotos. A primeira imagem será usada como capa caso nenhuma seja marcada.'}">
+            Selecione uma ou mais fotos. Marque qual imagem será usada como capa.
+          </p>
+
+          <div class="gallery-edit-current" th:if="${blogPostForm.fotosAtuais != null and !#lists.isEmpty(blogPostForm.fotosAtuais)}">
+            <h3>Fotos atuais</h3>
+            <div class="gallery-edit-current-grid">
+              <label class="gallery-edit-photo" th:each="foto : ${blogPostForm.fotosAtuais}">
+                <img th:src="@{|/uploads/${foto}|}" th:alt="${blogPostForm.titulo}">
+                <span>
+                  <input type="radio"
+                         name="fotoCapaAtual"
+                         th:value="${foto}"
+                         th:checked="${foto == blogPostForm.fotoCapaAtual}">
+                  Usar como capa
+                </span>
+                <span>
+                  <input type="checkbox" name="fotosRemover" th:value="${foto}">
+                  Remover
+                </span>
+              </label>
+            </div>
+          </div>
+
+          <div id="blogNovasFotosPreview" class="gallery-edit-current" style="display: none;">
+            <h3>Novas fotos selecionadas</h3>
+            <div class="gallery-edit-current-grid" data-blog-new-preview></div>
           </div>
 
           <div class="blog-editor-wrap">
@@ -161,8 +186,10 @@
             <div>
               <strong th:text="${post.titulo}">Título</strong>
               <small th:text="${#temporals.format(post.dataPublicacao, 'dd/MM/yyyy')}">01/01/2026</small>
+              <small th:if="${post.fotos != null}" th:text="${#lists.size(post.fotos)} + ' foto(s)'">0 foto(s)</small>
               <div class="blog-admin-actions">
                 <a class="btn btn-secondary" th:href="@{/admin(editarPost=${post.id})} + '#blog-editor-panel'">Editar</a>
+                <a class="btn btn-secondary" th:href="@{/blog/{id}(id=${post.id})}" target="_blank" rel="noopener">Abrir</a>
                 <form th:action="@{/admin/blog/{id}/excluir(id=${post.id})}" method="post">
                   <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
                   <button class="btn btn-danger" type="submit" onclick="return confirm('Deseja excluir esta postagem?');">Excluir</button>
@@ -461,5 +488,100 @@
   });
 })();
 </script>
+
+<script>
+(function(){
+  document.addEventListener('DOMContentLoaded', function(){
+    const input = document.getElementById('blogFotosInput');
+    const previewWrap = document.getElementById('blogNovasFotosPreview');
+    const previewGrid = document.querySelector('[data-blog-new-preview]');
+
+    if (!input || !previewWrap || !previewGrid) {
+      return;
+    }
+
+    function limparPreviewNovasFotos() {
+      previewGrid.querySelectorAll('img').forEach(function(img){
+        if (img.dataset.objectUrl) {
+          URL.revokeObjectURL(img.dataset.objectUrl);
+        }
+      });
+      previewGrid.innerHTML = '';
+      previewWrap.style.display = 'none';
+    }
+
+    input.addEventListener('change', function(){
+      limparPreviewNovasFotos();
+
+      const arquivos = Array.from(input.files || []);
+
+      if (arquivos.length === 0) {
+        return;
+      }
+
+      previewWrap.style.display = '';
+
+      arquivos.forEach(function(file, index){
+        const objectUrl = URL.createObjectURL(file);
+
+        const label = document.createElement('label');
+        label.className = 'gallery-edit-photo';
+
+        const img = document.createElement('img');
+        img.src = objectUrl;
+        img.alt = file.name || 'Nova foto da postagem';
+        img.dataset.objectUrl = objectUrl;
+
+        const spanCapa = document.createElement('span');
+
+        const radio = document.createElement('input');
+        radio.type = 'radio';
+        radio.name = 'fotoCapaNovaIndex';
+        radio.value = String(index);
+
+        if (index === 0 && !document.querySelector('input[name="fotoCapaAtual"]:checked')) {
+          radio.checked = true;
+        }
+
+        spanCapa.appendChild(radio);
+        spanCapa.appendChild(document.createTextNode(' Usar como capa'));
+
+        const spanNome = document.createElement('span');
+        spanNome.textContent = file.name || 'Nova imagem';
+
+        label.appendChild(img);
+        label.appendChild(spanCapa);
+        label.appendChild(spanNome);
+
+        previewGrid.appendChild(label);
+      });
+    });
+
+    document.addEventListener('change', function(event){
+      if (event.target.name === 'fotoCapaNovaIndex' && event.target.checked) {
+        document.querySelectorAll('input[name="fotoCapaAtual"]').forEach(function(radio){
+          radio.checked = false;
+        });
+      }
+
+      if (event.target.name === 'fotoCapaAtual' && event.target.checked) {
+        document.querySelectorAll('input[name="fotoCapaNovaIndex"]').forEach(function(radio){
+          radio.checked = false;
+        });
+      }
+
+      if (event.target.name === 'fotosRemover' && event.target.checked) {
+        const fotoRemovida = event.target.value;
+        const capaAtualSelecionada = document.querySelector('input[name="fotoCapaAtual"]:checked');
+
+        if (capaAtualSelecionada && capaAtualSelecionada.value === fotoRemovida) {
+          capaAtualSelecionada.checked = false;
+        }
+      }
+    });
+  });
+})();
+</script>
+
 </body>
 </html>

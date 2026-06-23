@@ -161,23 +161,40 @@ public class AdminController {
     @PostMapping("/blog/salvar")
     public String salvarBlogPost(@RequestParam(name = "titulo") String titulo,
                                  @RequestParam(name = "dataPublicacao") String dataPublicacao,
-                                 @RequestParam(name = "foto") MultipartFile foto,
+                                 @RequestParam(name = "fotos", required = false) MultipartFile[] fotos,
                                  @RequestParam(name = "conteudoHtml") String conteudoHtml,
                                  @RequestParam(name = "id", required = false) UUID id,
-                                 @RequestParam(name = "fotoUrlAtual", required = false) String fotoUrlAtual,
+                                 @RequestParam(name = "fotoCapaAtual", required = false) String fotoCapaAtual,
+                                 @RequestParam(name = "fotoCapaNovaIndex", required = false) Integer fotoCapaNovaIndex,
+                                 @RequestParam(name = "fotosRemover", required = false) List<String> fotosRemover,
                                  RedirectAttributes redirectAttributes) {
         try {
             boolean editando = id != null;
-            adminMasterService.salvarBlogPost(id, titulo, dataPublicacao, foto, conteudoHtml, fotoUrlAtual);
-            redirectAttributes.addFlashAttribute(SUCESSO, editando ? "Postagem atualizada com sucesso." : "Postagem publicada com sucesso.");
+
+            adminMasterService.salvarBlogPost(
+                    id,
+                    titulo,
+                    dataPublicacao,
+                    fotos,
+                    conteudoHtml,
+                    fotoCapaAtual,
+                    fotoCapaNovaIndex,
+                    fotosRemover);
+
+            redirectAttributes.addFlashAttribute(
+                    SUCESSO,
+                    editando ? "Postagem atualizada com sucesso." : "Postagem publicada com sucesso.");
         } catch (RuntimeException ex) {
             redirectAttributes.addFlashAttribute("erro", ex.getMessage());
+
             if (id != null) {
                 return "redirect:/admin?editarPost=" + id + "#blog-editor-panel";
             }
+
+            return "redirect:/admin#blog-editor-panel";
         }
 
-        return ADMIN_REDIRECT;
+        return "redirect:/admin#blog-editor-panel";
     }
 
     @PostMapping("/blog/{id}/excluir")
