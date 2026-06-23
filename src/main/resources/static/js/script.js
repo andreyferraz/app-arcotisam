@@ -64,6 +64,7 @@ let searchProduct = null;
 let categoryFilter = null;
 let contactForm = null;
 let formMessage = null;
+let contactWhatsapp = null;
 
 function formatCurrency(value) {
   return value.toLocaleString("pt-BR", {
@@ -209,6 +210,40 @@ function getCategoryLabel(category) {
   return categories[category] || category;
 }
 
+function normalizarWhatsapp(whatsapp) {
+  if (!whatsapp) {
+    return null;
+  }
+
+  let numeros = String(whatsapp).trim().replace(/\D/g, '');
+  if (!numeros) {
+    return null;
+  }
+
+  if (!numeros.startsWith('55')) {
+    numeros = `55${numeros}`;
+  }
+
+  return numeros;
+}
+
+function abrirWhatsAppContato(nome, email, mensagem, whatsapp) {
+  const numero = normalizarWhatsapp(whatsapp);
+  if (!numero) {
+    throw new Error('WhatsApp do contato nao encontrado.');
+  }
+
+  const texto = [
+    'Olá! Gostaria de entrar em contato pela ARCOTISAM.',
+    `Nome: ${nome}`,
+    `E-mail: ${email}`,
+    `Mensagem: ${mensagem}`
+  ].join('\n');
+
+  const url = `https://wa.me/${numero}?text=${encodeURIComponent(texto)}`;
+  window.open(url, '_blank', 'noopener,noreferrer');
+}
+
 // post-load initialization for page-specific elements
 function postLoadInit(page) {
   productGrid = document.getElementById("productGrid");
@@ -216,6 +251,7 @@ function postLoadInit(page) {
   categoryFilter = document.getElementById("categoryFilter");
   contactForm = document.getElementById("contactForm");
   formMessage = document.getElementById("formMessage");
+  contactWhatsapp = document.querySelector("[data-whatsapp]");
 
   if (searchProduct) searchProduct.addEventListener("input", renderProducts);
   if (categoryFilter) categoryFilter.addEventListener("change", renderProducts);
@@ -224,12 +260,23 @@ function postLoadInit(page) {
     contactForm.addEventListener("submit", event => {
       event.preventDefault();
 
-      if (formMessage) formMessage.textContent = "Mensagem enviada com sucesso! Este é apenas um envio simulado.";
-      contactForm.reset();
+      const nome = contactForm.nome.value.trim();
+      const email = contactForm.email.value.trim();
+      const mensagem = contactForm.mensagem.value.trim();
+      const whatsapp = contactWhatsapp && contactWhatsapp.dataset ? contactWhatsapp.dataset.whatsapp : null;
 
-      setTimeout(() => {
-        if (formMessage) formMessage.textContent = "";
-      }, 4000);
+      try {
+        abrirWhatsAppContato(nome, email, mensagem, whatsapp);
+
+        if (formMessage) formMessage.textContent = "Abrindo WhatsApp com sua mensagem...";
+        contactForm.reset();
+
+        setTimeout(() => {
+          if (formMessage) formMessage.textContent = "";
+        }, 4000);
+      } catch (error) {
+        if (formMessage) formMessage.textContent = error.message;
+      }
     });
   }
 
