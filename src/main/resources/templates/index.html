@@ -34,38 +34,60 @@
     </div>
 
     <section class="container page-section active" id="ultimos-produtos">
-      <div class="page-header" style="margin-top: 0; text-align: left;">
-        <span class="eyebrow">Novidades da loja</span>
-        <h2>Últimos produtos cadastrados</h2>
-        <p>Conheça as peças mais recentes publicadas pelos artesãos da ARCOTISAM.</p>
-      </div>
+<div class="page-header" style="margin-top: 0; margin-left: auto; margin-right: auto; text-align: center;">
+  <span class="eyebrow">Novidades da loja</span>
+  <h2>Últimos produtos cadastrados</h2>
+  <p>Conheça as peças mais recentes publicadas pelos artesãos da ARCOTISAM.</p>
+</div>
 
       <div th:if="${#lists.isEmpty(ultimosProdutos)}" class="admin-empty-state">
         Ainda não existem produtos cadastrados.
       </div>
 
-      <div th:unless="${#lists.isEmpty(ultimosProdutos)}" class="product-grid">
-        <article class="product-card" th:each="p : ${ultimosProdutos}">
+      <div th:unless="${#lists.isEmpty(ultimosProdutos)}" class="product-grid" id="homeProductGrid">
+        <div th:each="p : ${ultimosProdutos}" class="product-card">
           <div class="product-image">
-            <img th:if="${p.imagemUrl != null}" th:src="@{|/uploads/${p.imagemUrl}|}" th:alt="${p.nome}"
-              class="product-photo" />
+            <button th:if="${p.imagemUrl != null}"
+                    type="button"
+                    class="shop-product-photo-button"
+                    th:attr="data-fullsrc=@{|/uploads/${p.imagemUrl}|},aria-label=${'Ampliar foto de ' + p.nome}">
+              <img th:src="@{|/uploads/${p.imagemUrl}|}"
+                   th:alt="${p.nome}"
+                   class="product-photo shop-product-photo" />
+            </button>
+
             <div th:if="${p.imagemUrl == null}">🧶</div>
           </div>
+
           <div class="product-body">
             <h3 class="product-title" th:text="${p.nome}">Produto</h3>
+
             <p class="product-desc" th:text="${p.descricao}">Descrição</p>
+
             <div class="product-footer">
               <strong class="price" th:text="${'R$ ' + #numbers.formatDecimal(p.preco, 1, 'POINT', 2, 'COMMA')}">
                 R$0,00
               </strong>
-              <a class="btn btn-primary buy-btn" th:href="@{/comprar/{id}(id=${p.id})}">Comprar</a>
+
+              <a class="btn btn-primary buy-btn" th:href="@{/comprar/{id}(id=${p.id})}">
+                Comprar
+              </a>
             </div>
           </div>
-        </article>
+        </div>
       </div>
 
       <div class="hero-actions" style="margin-top: 28px; justify-content: center;">
         <a th:href="@{/loja}" class="btn btn-secondary">Ver todos os produtos</a>
+      </div>
+
+      <div class="image-lightbox" id="homeProductImageLightbox" aria-hidden="true">
+        <button type="button"
+                class="image-lightbox-close"
+                id="homeProductImageLightboxClose"
+                aria-label="Fechar visualização">×</button>
+
+        <img id="homeProductImageLightboxImg" alt="Foto ampliada do produto">
       </div>
     </section>
 
@@ -90,10 +112,13 @@
     </div>
 
     <section class="container page-section active" id="artesaos-destaque">
-      <div class="page-header" style="margin-top: 0; text-align: left;">
+      <div class="page-header" style="margin-top: 0; margin-left: auto; margin-right: auto; text-align: center;">
         <span class="eyebrow">Nossa rede</span>
         <h2>Artesãos Associados</h2>
-        <p>Uma seleção aleatória de artesãos associados para você conhecer melhor a comunidade ARCOTISAM, para ver todos os artesãos clique no botão para ver todos os associados</p>
+        <p>
+          Conheça os artesãos associados, assim conhecerá melhor a comunidade ARCOTISAM. Para ver todos
+          os artesãos, clique no botão abaixo para ver todos os associados.
+        </p>
       </div>
 
       <div th:if="${#lists.isEmpty(artesaosAleatorios)}" class="admin-empty-state">
@@ -104,13 +129,20 @@
         <article class="member-card" th:each="artesao : ${artesaosAleatorios}">
           <div class="member-avatar member-photo">
             <img th:if="${artesao.fotoUrl != null and !#strings.isEmpty(artesao.fotoUrl)}"
-              th:src="@{|/uploads/${artesao.fotoUrl}|}" th:alt="${'Foto de ' + artesao.nome}">
+                 th:src="@{|/uploads/${artesao.fotoUrl}|}"
+                 th:alt="${'Foto de ' + artesao.nome}">
+
             <span th:unless="${artesao.fotoUrl != null and !#strings.isEmpty(artesao.fotoUrl)}"
-              th:text="${artesao.nome != null and #strings.length(artesao.nome) >= 2 ? #strings.substring(artesao.nome, 0, 2).toUpperCase() : 'AR'}">AR</span>
+                  th:text="${artesao.nome != null and #strings.length(artesao.nome) >= 2 ? #strings.substring(artesao.nome, 0, 2).toUpperCase() : 'AR'}">AR</span>
           </div>
+
           <h3 th:text="${artesao.nome}">Nome do artesão</h3>
+
           <p th:text="${artesao.descricao}">Descrição do artesão</p>
-          <a class="btn btn-secondary" th:href="@{/loja(artesaoId=${artesao.id})}">Ver produtos na Loja</a>
+
+          <a class="btn btn-secondary" th:href="@{/loja(artesaoId=${artesao.id})}">
+            Ver produtos na Loja
+          </a>
         </article>
       </div>
 
@@ -119,6 +151,62 @@
       </div>
     </section>
   </section>
+
+  <script>
+    (function(){
+      document.addEventListener('DOMContentLoaded', function(){
+        const grid = document.getElementById('homeProductGrid');
+        const lightbox = document.getElementById('homeProductImageLightbox');
+        const lightboxImg = document.getElementById('homeProductImageLightboxImg');
+        const closeButton = document.getElementById('homeProductImageLightboxClose');
+
+        if (!grid || !lightbox || !lightboxImg || !closeButton) {
+          return;
+        }
+
+        function abrirLightbox(src, alt) {
+          lightboxImg.src = src;
+          lightboxImg.alt = alt || 'Foto ampliada do produto';
+          lightbox.classList.add('is-open');
+          lightbox.setAttribute('aria-hidden', 'false');
+          document.body.classList.add('lightbox-open');
+        }
+
+        function fecharLightbox() {
+          lightbox.classList.remove('is-open');
+          lightbox.setAttribute('aria-hidden', 'true');
+          lightboxImg.src = '';
+          document.body.classList.remove('lightbox-open');
+        }
+
+        grid.querySelectorAll('[data-fullsrc]').forEach(function(button){
+          button.addEventListener('click', function(){
+            const src = button.getAttribute('data-fullsrc');
+            const img = button.querySelector('img');
+            const alt = img ? img.getAttribute('alt') : button.getAttribute('aria-label');
+
+            if (src) {
+              abrirLightbox(src, alt);
+            }
+          });
+        });
+
+        closeButton.addEventListener('click', fecharLightbox);
+
+        lightbox.addEventListener('click', function(event){
+          if (event.target === lightbox) {
+            fecharLightbox();
+          }
+        });
+
+        document.addEventListener('keydown', function(event){
+          if (event.key === 'Escape' && lightbox.classList.contains('is-open')) {
+            fecharLightbox();
+          }
+        });
+      });
+    })();
+  </script>
 </div>
 
 </body>
