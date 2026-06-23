@@ -44,9 +44,11 @@ public class AdminController {
     @GetMapping
     public String painel(@RequestParam(name = "editar", required = false) UUID editar,
                          @RequestParam(name = "editarPost", required = false) UUID editarPost,
+                         @RequestParam(name = "editarGaleria", required = false) UUID editarGaleria,
                          Model model) {
         ArtesaoAdminForm form = adminMasterService.carregarFormulario(editar);
         BlogPostAdminForm blogPostForm = adminMasterService.carregarBlogPostFormulario(editarPost);
+        GaleriaExibicaoItem galeriaEditando = adminMasterService.carregarGaleriaParaEdicao(editarGaleria);
         List<ArtesaoDashboardItem> artesaos = adminMasterService.listarArtesaos();
         List<ProdutoRankingItem> produtosMaisVendidos = adminMasterService.listarProdutosMaisVendidos(5);
         List<GaleriaExibicaoItem> galerias = adminMasterService.listarGalerias();
@@ -60,6 +62,8 @@ public class AdminController {
         model.addAttribute("blogPosts", blogPosts);
         model.addAttribute("blogPostForm", blogPostForm);
         model.addAttribute("editandoBlogPost", editarPost != null);
+        model.addAttribute("galeriaEditando", galeriaEditando);
+        model.addAttribute("editandoGaleria", galeriaEditando != null);
         model.addAttribute("dataPublicacaoPadrao", LocalDate.now().toString());
         model.addAttribute("fotoAssociacaoUrl", fotoAssociacaoUrl);
         model.addAttribute("labelsProdutosMaisVendidos", produtosMaisVendidos.stream().map(ProdutoRankingItem::getNome).toList());
@@ -125,10 +129,28 @@ public class AdminController {
     @PostMapping("/galerias/salvar")
     public String salvarGaleria(@RequestParam(name = "titulo") String titulo,
                                 @RequestParam(name = "fotos", required = false) MultipartFile[] fotos,
+                                @RequestParam(name = "galeriaId", required = false) UUID galeriaId,
+                                @RequestParam(name = "fotosRemover", required = false) List<String> fotosRemover,
                                 RedirectAttributes redirectAttributes) {
         try {
-            adminMasterService.salvarGaleria(titulo, fotos);
-            redirectAttributes.addFlashAttribute(SUCESSO, "Galeria cadastrada com sucesso.");
+            boolean editando = galeriaId != null;
+            adminMasterService.salvarGaleria(galeriaId, titulo, fotos, fotosRemover);
+            redirectAttributes.addFlashAttribute(SUCESSO, editando ? "Galeria atualizada com sucesso." : "Galeria cadastrada com sucesso.");
+        } catch (RuntimeException ex) {
+            redirectAttributes.addFlashAttribute("erro", ex.getMessage());
+            if (galeriaId != null) {
+                return "redirect:/admin?editarGaleria=" + galeriaId + "#galerias-panel";
+            }
+        }
+
+        return ADMIN_REDIRECT;
+    }
+
+    @PostMapping("/galerias/{id}/excluir")
+    public String excluirGaleria(@PathVariable UUID id, RedirectAttributes redirectAttributes) {
+        try {
+            adminMasterService.excluirGaleria(id);
+            redirectAttributes.addFlashAttribute(SUCESSO, "Galeria excluída com sucesso.");
         } catch (RuntimeException ex) {
             redirectAttributes.addFlashAttribute("erro", ex.getMessage());
         }

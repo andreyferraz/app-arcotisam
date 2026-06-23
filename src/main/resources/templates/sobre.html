@@ -72,10 +72,18 @@
 
         <div class="gallery-photos" th:if="${!#lists.isEmpty(galeria.fotos)}">
           <figure class="gallery-photo" th:each="foto : ${galeria.fotos}">
-            <img th:src="@{|/uploads/${foto}|}" th:alt="${galeria.titulo}">
+            <button type="button" class="gallery-photo-button gallery-expand-photo"
+              th:attr="data-fullsrc=@{|/uploads/${foto}|},aria-label=${'Ampliar foto de ' + galeria.titulo}">
+              <img th:src="@{|/uploads/${foto}|}" th:alt="${galeria.titulo}" class="gallery-photo-image">
+            </button>
           </figure>
         </div>
       </article>
+    </div>
+
+    <div class="image-lightbox" id="shopImageLightbox" aria-hidden="true">
+      <button type="button" class="image-lightbox-close" id="shopImageLightboxClose" aria-label="Fechar visualização">×</button>
+      <img id="shopImageLightboxImg" alt="Foto ampliada da galeria">
     </div>
   </div>
 </section>
