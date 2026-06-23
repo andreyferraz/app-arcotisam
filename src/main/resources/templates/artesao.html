@@ -36,6 +36,18 @@
         <div>
           <label>Imagem</label>
           <input type="file" name="imagem" accept="image/*" />
+          <label style="display:block; margin-top:8px;">
+            Orientação da imagem
+            <select name="imagemOrientacao" data-image-orientation>
+              <option value="0">Padrão</option>
+              <option value="90">Girar 90° à direita</option>
+              <option value="180">Girar 180°</option>
+              <option value="270">Girar 90° à esquerda</option>
+            </select>
+          </label>
+          <div class="admin-photo-preview" id="produtoImagemPreview" style="margin-top:12px; display:none;">
+            <img id="produtoImagemPreviewImg" alt="Pré-visualização do produto">
+          </div>
         </div>
         <div>
           <button class="btn btn-primary" type="submit" id="produtoSubmit">Cadastrar Produto</button>
@@ -67,7 +79,7 @@
             <td th:text="${p.preco}"></td>
             <td>
               <button type="button" class="btn btn-secondary edit-btn"
-                      th:attr="data-id=${p.id},data-nome=${p.nome},data-descricao=${p.descricao},data-preco=${p.preco}">Editar</button>
+                      th:attr="data-id=${p.id},data-nome=${p.nome},data-descricao=${p.descricao},data-preco=${p.preco},data-imagemurl=${p.imagemUrl}">Editar</button>
               <form th:action="@{/artesao/produtos/{id}/excluir(id=${p.id})}" method="post" style="display:inline">
                 <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
                 <button type="submit" class="btn btn-danger">Excluir</button>

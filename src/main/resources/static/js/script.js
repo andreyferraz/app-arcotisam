@@ -65,6 +65,13 @@ let categoryFilter = null;
 let contactForm = null;
 let formMessage = null;
 let contactWhatsapp = null;
+let isProcessingImageOrientation = false;
+let productImagePreview = null;
+let productImagePreviewImg = null;
+let productImageLoadToken = 0;
+let shopImageLightbox = null;
+let shopImageLightboxImg = null;
+let shopImageLightboxClose = null;
 
 function formatCurrency(value) {
   return value.toLocaleString("pt-BR", {
@@ -244,6 +251,142 @@ function abrirWhatsAppContato(nome, email, mensagem, whatsapp) {
   window.open(url, '_blank', 'noopener,noreferrer');
 }
 
+function getRotationRadians(degrees) {
+  return (Number(degrees) || 0) * Math.PI / 180;
+}
+
+async function rotateImageFile(file, degrees) {
+  const rotation = Number(degrees) || 0;
+  if (!file || !rotation || rotation % 360 === 0) {
+    return file;
+  }
+
+  const imageUrl = URL.createObjectURL(file);
+  try {
+    const image = await new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = () => reject(new Error('Nao foi possivel carregar a imagem para rotacao.'));
+      img.src = imageUrl;
+    });
+
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d');
+    if (!context) {
+      throw new Error('Nao foi possivel preparar a imagem para rotacao.');
+    }
+
+    const normalizedRotation = ((rotation % 360) + 360) % 360;
+    const isQuarterTurn = normalizedRotation === 90 || normalizedRotation === 270;
+    canvas.width = isQuarterTurn ? image.height : image.width;
+    canvas.height = isQuarterTurn ? image.width : image.height;
+
+    context.translate(canvas.width / 2, canvas.height / 2);
+    context.rotate(getRotationRadians(normalizedRotation));
+    context.drawImage(image, -image.width / 2, -image.height / 2);
+
+    const blob = await new Promise((resolve, reject) => {
+      canvas.toBlob(result => {
+        if (result) {
+          resolve(result);
+        } else {
+          reject(new Error('Nao foi possivel gerar a imagem rotacionada.'));
+        }
+      }, file.type || 'image/jpeg', 0.92);
+    });
+
+    return new File([blob], file.name, { type: blob.type || file.type || 'image/jpeg' });
+  } finally {
+    URL.revokeObjectURL(imageUrl);
+  }
+}
+
+async function prepareImageOrientationInputs(form) {
+  const selectors = Array.from(form.querySelectorAll('[data-image-orientation]'));
+  for (const selector of selectors) {
+    const field = selector.closest('label, .admin-upload, div, form')?.querySelector('input[type="file"][accept*="image"]') || form.querySelector('input[type="file"][accept*="image"]');
+    if (!field || !field.files || !field.files.length) {
+      continue;
+    }
+
+    const rotation = selector.value;
+    const original = field.files[0];
+    const rotated = await rotateImageFile(original, rotation);
+    if (rotated !== original) {
+      const dataTransfer = new DataTransfer();
+      dataTransfer.items.add(rotated);
+      field.files = dataTransfer.files;
+    }
+  }
+}
+
+function updateImagePreview(previewContainer, previewImage, file, rotationDegrees) {
+  if (!previewContainer || !previewImage || !file) {
+    return;
+  }
+
+  const previewUrl = URL.createObjectURL(file);
+  previewImage.onload = () => {
+    previewImage.style.transform = `rotate(${Number(rotationDegrees) || 0}deg)`;
+    previewContainer.style.display = 'block';
+    URL.revokeObjectURL(previewUrl);
+  };
+  previewImage.onerror = () => {
+    previewContainer.style.display = 'none';
+    URL.revokeObjectURL(previewUrl);
+  };
+  previewImage.src = previewUrl;
+}
+
+async function loadImageIntoFieldFromUrl(fileInput, imageUrl, previewContainer, previewImage) {
+  if (!fileInput || !imageUrl) {
+    return;
+  }
+
+  const currentToken = ++productImageLoadToken;
+  const response = await fetch(imageUrl, { cache: 'no-store' });
+  if (!response.ok) {
+    throw new Error('Nao foi possivel carregar a imagem atual do produto.');
+  }
+
+  const blob = await response.blob();
+  if (currentToken !== productImageLoadToken) {
+    return;
+  }
+
+  const filename = imageUrl.split('/').pop() || 'imagem.jpg';
+  const mimeType = blob.type || 'image/jpeg';
+  const file = new File([blob], filename, { type: mimeType });
+  const dataTransfer = new DataTransfer();
+  dataTransfer.items.add(file);
+  fileInput.files = dataTransfer.files;
+
+  updateImagePreview(previewContainer, previewImage, file, 0);
+}
+
+function openShopImageLightbox(imageUrl, altText) {
+  if (!shopImageLightbox || !shopImageLightboxImg) {
+    return;
+  }
+
+  shopImageLightboxImg.src = imageUrl;
+  shopImageLightboxImg.alt = altText || 'Imagem ampliada do produto';
+  shopImageLightbox.classList.add('is-open');
+  shopImageLightbox.setAttribute('aria-hidden', 'false');
+  document.body.classList.add('lightbox-open');
+}
+
+function closeShopImageLightbox() {
+  if (!shopImageLightbox || !shopImageLightboxImg) {
+    return;
+  }
+
+  shopImageLightbox.classList.remove('is-open');
+  shopImageLightbox.setAttribute('aria-hidden', 'true');
+  shopImageLightboxImg.removeAttribute('src');
+  document.body.classList.remove('lightbox-open');
+}
+
 // post-load initialization for page-specific elements
 function postLoadInit(page) {
   productGrid = document.getElementById("productGrid");
@@ -252,6 +395,11 @@ function postLoadInit(page) {
   contactForm = document.getElementById("contactForm");
   formMessage = document.getElementById("formMessage");
   contactWhatsapp = document.querySelector("[data-whatsapp]");
+  productImagePreview = document.getElementById('produtoImagemPreview');
+  productImagePreviewImg = document.getElementById('produtoImagemPreviewImg');
+  shopImageLightbox = document.getElementById('shopImageLightbox');
+  shopImageLightboxImg = document.getElementById('shopImageLightboxImg');
+  shopImageLightboxClose = document.getElementById('shopImageLightboxClose');
 
   if (searchProduct) searchProduct.addEventListener("input", renderProducts);
   if (categoryFilter) categoryFilter.addEventListener("change", renderProducts);
@@ -279,6 +427,71 @@ function postLoadInit(page) {
       }
     });
   }
+
+  if (shopImageLightbox && !shopImageLightbox.dataset.bound) {
+    shopImageLightbox.dataset.bound = 'true';
+
+    document.addEventListener('click', event => {
+      const image = event.target.closest && event.target.closest('.shop-product-photo');
+      if (!image) {
+        return;
+      }
+
+      const fullSrc = image.getAttribute('data-fullsrc') || image.getAttribute('src');
+      if (fullSrc) {
+        openShopImageLightbox(fullSrc, image.getAttribute('alt'));
+      }
+    });
+
+    document.addEventListener('keydown', event => {
+      if (event.key === 'Escape') {
+        closeShopImageLightbox();
+      }
+    });
+
+    if (shopImageLightboxClose) {
+      shopImageLightboxClose.addEventListener('click', closeShopImageLightbox);
+    }
+
+    shopImageLightbox.addEventListener('click', event => {
+      if (event.target === shopImageLightbox) {
+        closeShopImageLightbox();
+      }
+    });
+  }
+
+  const imageForms = Array.from(document.querySelectorAll('form[enctype="multipart/form-data"]'));
+  imageForms.forEach(form => {
+    if (form.dataset.orientationBound === 'true') {
+      return;
+    }
+
+    form.dataset.orientationBound = 'true';
+    form.addEventListener('submit', async event => {
+      if (isProcessingImageOrientation) {
+        return;
+      }
+
+      const selectors = form.querySelectorAll('[data-image-orientation]');
+      if (!selectors.length) {
+        return;
+      }
+
+      event.preventDefault();
+      isProcessingImageOrientation = true;
+
+      try {
+        await prepareImageOrientationInputs(form);
+        form.submit();
+      } catch (error) {
+        if (formMessage) {
+          formMessage.textContent = error.message;
+        }
+      } finally {
+        isProcessingImageOrientation = false;
+      }
+    });
+  });
 
   // render/update after elements are attached
   renderProducts();
@@ -312,6 +525,7 @@ function initProdutoEditButtons() {
   const inputDescricao = form.querySelector('input[name="descricao"]');
   const inputPreco = form.querySelector('input[name="preco"]');
   const inputImagem = form.querySelector('input[name="imagem"]');
+  const inputImagemOrientacao = form.querySelector('[data-image-orientation]');
   const submitBtn = document.getElementById('produtoSubmit');
   const cancelBtn = document.getElementById('produtoCancel');
 
@@ -323,17 +537,56 @@ function initProdutoEditButtons() {
     const nome = btn.getAttribute('data-nome');
     const descricao = btn.getAttribute('data-descricao');
     const preco = btn.getAttribute('data-preco');
+    const imagemUrl = btn.getAttribute('data-imagemurl');
 
     inputId.value = id || '';
     inputNome.value = nome || '';
     inputDescricao.value = descricao || '';
     inputPreco.value = preco || '';
     if (inputImagem) inputImagem.value = '';
+    if (inputImagemOrientacao) inputImagemOrientacao.value = '0';
 
     form.action = '/artesao/produtos/' + id + '/atualizar';
     submitBtn.textContent = 'Salvar Alterações';
     cancelBtn.style.display = '';
+
+    if (imagemUrl) {
+      loadImageIntoFieldFromUrl(inputImagem, `/uploads/${imagemUrl}`, productImagePreview, productImagePreviewImg)
+        .catch(() => {
+          if (productImagePreview) {
+            productImagePreview.style.display = 'none';
+          }
+        });
+    } else if (productImagePreview) {
+      productImagePreview.style.display = 'none';
+      if (productImagePreviewImg) {
+        productImagePreviewImg.removeAttribute('src');
+      }
+    }
   });
+
+  if (inputImagem) {
+    inputImagem.addEventListener('change', () => {
+      const file = inputImagem.files && inputImagem.files[0];
+      if (!file) {
+        if (productImagePreview) productImagePreview.style.display = 'none';
+        return;
+      }
+
+      updateImagePreview(productImagePreview, productImagePreviewImg, file, inputImagemOrientacao ? inputImagemOrientacao.value : 0);
+    });
+  }
+
+  if (inputImagemOrientacao) {
+    inputImagemOrientacao.addEventListener('change', () => {
+      const file = inputImagem && inputImagem.files ? inputImagem.files[0] : null;
+      if (!file) {
+        return;
+      }
+
+      updateImagePreview(productImagePreview, productImagePreviewImg, file, inputImagemOrientacao.value);
+    });
+  }
 
   if (cancelBtn) {
     cancelBtn.addEventListener('click', () => {
@@ -367,6 +620,7 @@ function resetProdutoForm() {
   const inputDescricao = form.querySelector('input[name="descricao"]');
   const inputPreco = form.querySelector('input[name="preco"]');
   const inputImagem = form.querySelector('input[name="imagem"]');
+  const inputImagemOrientacao = form.querySelector('[data-image-orientation]');
   const submitBtn = document.getElementById('produtoSubmit');
   const cancelBtn = document.getElementById('produtoCancel');
 
@@ -375,8 +629,11 @@ function resetProdutoForm() {
   if (inputDescricao) inputDescricao.value = '';
   if (inputPreco) inputPreco.value = '';
   if (inputImagem) inputImagem.value = '';
+  if (inputImagemOrientacao) inputImagemOrientacao.value = '0';
   if (submitBtn) submitBtn.textContent = 'Cadastrar Produto';
   if (cancelBtn) cancelBtn.style.display = 'none';
+  if (productImagePreview) productImagePreview.style.display = 'none';
+  if (productImagePreviewImg) productImagePreviewImg.removeAttribute('src');
 }
 
 function initBlogEditor() {

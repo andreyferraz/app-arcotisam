@@ -34,8 +34,10 @@
 
         <div th:each="p : ${produtos}" class="product-card">
           <div class="product-image">
-            <img th:if="${p.imagemUrl != null}" th:src="@{|/uploads/${p.imagemUrl}|}" th:alt="${p.nome}"
-              class="product-photo" />
+            <button th:if="${p.imagemUrl != null}" type="button" class="shop-product-photo-button"
+              th:attr="data-fullsrc=@{|/uploads/${p.imagemUrl}|},aria-label=${'Ampliar foto de ' + p.nome}">
+              <img th:src="@{|/uploads/${p.imagemUrl}|}" th:alt="${p.nome}" class="product-photo shop-product-photo" />
+            </button>
             <div th:if="${p.imagemUrl == null}">🧶</div>
           </div>
           <div class="product-body">
@@ -49,6 +51,11 @@
             </div>
           </div>
         </div>
+      </div>
+
+      <div class="image-lightbox" id="shopImageLightbox" aria-hidden="true">
+        <button type="button" class="image-lightbox-close" id="shopImageLightboxClose" aria-label="Fechar visualização">×</button>
+        <img id="shopImageLightboxImg" alt="Foto ampliada do produto">
       </div>
     </section>
   </div>

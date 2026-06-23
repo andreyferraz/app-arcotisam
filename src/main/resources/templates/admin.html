@@ -65,6 +65,16 @@
             <input type="file" name="fotoAssociacao" accept="image/*" required>
           </label>
 
+          <label>
+            Orientação da foto
+            <select name="fotoAssociacaoOrientacao" data-image-orientation>
+              <option value="0">Padrão</option>
+              <option value="90">Girar 90° à direita</option>
+              <option value="180">Girar 180°</option>
+              <option value="270">Girar 90° à esquerda</option>
+            </select>
+          </label>
+
           <p class="admin-note">A imagem é usada no hero da home. Envie uma nova foto sempre que quiser atualizar essa vitrine.</p>
 
           <div class="admin-photo-preview" th:if="${fotoAssociacaoUrl != null and !#strings.isEmpty(fotoAssociacaoUrl)}">
